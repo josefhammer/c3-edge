@@ -1,0 +1,194 @@
+---
+- name: Gather facts for gateway only  # reason: See passwordless login comment below
+  setup:
+  when: inventory_hostname == "gateway"
+
+
+# Set up passwordless login first (requires gather_facts: False)
+#
+# Prepare passwordless login to nodes (required for bootstrap-node :: ssh-copy-id)
+#
+- name: Generate SSH keypair on localhost
+  shell: ssh-keygen -N '' -f ~/.ssh/id_rsa
+  args:
+    creates: ~/.ssh/id_rsa
+  become: false
+  run_once: true
+  delegate_to: 127.0.0.1
+
+- name: Install sshpass on localhost
+  apt: 
+    pkg: sshpass
+    state: present
+  become: true
+  run_once: true
+  delegate_to: 127.0.0.1
+
+- name: ssh-copy-id to node
+  shell: sshpass -p {{ hostvars[inventory_hostname].ansible_pass }} ssh-copy-id -o StrictHostKeyChecking=no {{ hostvars[inventory_hostname].ansible_user }}@{{ hostvars[inventory_hostname].ansible_host }}
+  delegate_to: 127.0.0.1
+  when: not hostvars[inventory_hostname].ansible_connection == "local"
+
+- name: Configure SSH for simplified login
+  template:
+    src: ssh-config.j2
+    dest: ~/.ssh/config
+    mode: '0664'
+    backup: yes
+  run_once: true
+  delegate_to: 127.0.0.1
+
+
+# Set up password-less SUDO
+#
+- name: Password-less SUDO
+  lineinfile:
+    path: /etc/sudoers
+    state: present
+    regexp: '^%sudo'
+    line: '%sudo ALL=(ALL) NOPASSWD: ALL'
+    validate: 'visudo -cf %s'
+  become: true
+  when: "'jetsons' in group_names"
+
+
+# Add node to /etc/hosts on Gateway (would not be neccessary as 'nodeX.local' would work out of the box ... just to make it shorter)
+#
+- name: Add node to /etc/hosts on localhost
+  lineinfile:
+    path: /etc/hosts
+    regexp: '^\d+\.\d+\.\d+\.\d+ {{ inventory_hostname }}'
+    line: "{{ hostvars[inventory_hostname].ansible_host }} {{ inventory_hostname }}"
+    state: present
+  become: true
+  delegate_to: 127.0.0.1
+  when: not hostvars[inventory_hostname].ansible_connection == "local"
+
+
+- name: Set fixed IP address and route to gateway (RPi) # using /etc/dhcpcd.exit-hook caused issues with Docker 
+  block:
+    - name: Set fixed IP and default route for eth0
+      lineinfile:
+        path: /etc/dhcpcd.conf
+        regexp: '^interface eth0'  # using ^ to ignore all commented lines (since regex will match the _last_ one only!)
+        line: interface eth0
+        state: present
+
+    - name: Set static IP address
+      lineinfile:
+        path: /etc/dhcpcd.conf
+        regexp: '^static ip_address='
+        line: static ip_address={{ hostvars[inventory_hostname].ansible_host }}/24
+        state: present
+
+    - name: Set route to gateway
+      lineinfile:
+        path: /etc/dhcpcd.conf
+        regexp: '^static routers='
+        line: static routers={{ hostvars['gateway'].ansible_host }}
+        state: present
+      notify: reboot
+
+    - name: Set DNS
+      lineinfile:
+        path: /etc/dhcpcd.conf
+        regexp: '^static domain_name_servers='
+        line: static domain_name_servers={{ hostvars['gateway'].ansible_host }}
+        state: present
+
+  become: true
+  when: "'nodes' in group_names"
+        
+- name: Set time servers
+  lineinfile:
+    path: /etc/systemd/timesyncd.conf
+    regexp: '^#?NTP='
+    line: NTP={{ hostvars['gateway'].ntp }}
+    state: present
+    create: yes
+  become: true
+  when: not inventory_hostname == "gateway"
+
+- name: Set time zone
+  command: timedatectl set-timezone Europe/Vienna
+  become: true
+
+
+- name: Set up node name  # DO THIS AT THE END !! sudo will be really slow once the hostname is modified (until rebooting)
+  block:
+    - name: Write node name to /etc/hosts  # otherwise we get error messages
+      lineinfile:
+        path: /etc/hosts
+        regexp: '^127\.0\.1\.1'
+        line: 127.0.1.1 {{ inventory_hostname }}
+        state: present
+      notify: reboot
+      
+    - name: Write node name to /etc/hostname
+      copy: content="{{ inventory_hostname }}\n" dest=/etc/hostname
+      notify: reboot
+      
+  become: true
+
+  
+- name: Set up gateway
+  block:
+    - name: Set up gateway NICs (Ubuntu)
+      block:
+        - name: Write Netplan config (Ubuntu)
+          template:
+            src: 05-edge-netplan.yaml.j2
+            dest: /etc/netplan/05-edge.yaml
+            mode: '0644'
+            backup: yes
+
+        - name: Apply Netplan config (Ubuntu)
+          shell: netplan apply
+          
+      become: true
+      when: ansible_facts['architecture'] == "x86_64"  # Ubuntu only; Raspberry Pi gateway has IP hardcoded in cmdline.txt
+  
+    - name: Include tasks for gateway NAT / firewall
+      include_tasks: "bootstrap-tasks-nat.yml"
+
+    - name: Update & upgrade all packages on gateway  # Run the equivalent of "apt-get update + upgrade" (unless done recently)
+      apt:                                 # Run here for gateway to avoid one additional reboot
+        update_cache: yes
+        cache_valid_time: 3600
+        upgrade: dist
+      become: true
+      notify: reboot                       # Absolutely necessary _before_ the installation of Docker (will fail consistently otherwise!)
+
+  when: inventory_hostname == "gateway"
+
+
+# Freeze IP addresses given by DHCP (Jetsons)
+#
+- name: Freeze IP addresses
+  block:
+
+    - name: Gather MAC addresses
+      setup:
+
+    - name: Freeze IP addresses given by DHCP (Jetsons)
+      lineinfile:
+        path: /etc/dnsmasq.conf
+        regexp: '^dhcp-host=.+,{{ ansible_host }},.+'
+        line: dhcp-host={{ ansible_facts.eth0.macaddress }},{{ inventory_hostname }},{{ ansible_host }},12h
+        insertafter: '#dhcp-host='
+        firstmatch: yes
+        state: present
+      delegate_to: 127.0.0.1
+      throttle: 1  # avoid race condition: run for one machine in parallel only
+      become: true
+      
+    - name:
+      service: 
+        name: dnsmasq
+        state: restarted      
+      become: true
+      run_once: true
+      delegate_to: 127.0.0.1
+    
+  when: "'jetsons' in group_names"
+

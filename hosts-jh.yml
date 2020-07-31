@@ -1,0 +1,17 @@
+all:
+    children:
+        gateways:
+            hosts:
+                gateway:
+                    ansible_connection: local
+                    ansible_host: 10.42.0.200  # default gateway address for all nodes
+                    nic_ext: wlan0
+                    nic_int: eth0
+
+        nodes:
+            hosts:
+                node[2:4]:
+            vars:
+                ansible_connection: ssh
+                ansible_user: pi
+                ansible_host: "10.42.0.{{ inventory_hostname.split('node')[1] }}"

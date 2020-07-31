@@ -1,0 +1,8 @@
+Host node*
+    User {{ hostvars['node1'].ansible_user }}
+
+{% if 'jetson1' in hostvars %}
+Host jetson*
+    User {{ hostvars['jetson1'].ansible_user }}
+{% endif %}
+

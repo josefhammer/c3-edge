@@ -1,0 +1,29 @@
+all:
+    children:
+        gateways:
+            hosts:
+                gateway:
+                    ansible_connection: local
+                    ansible_host: 10.42.0.1  # default gateway address for all nodes
+                    nic_ext: enp5s0
+                    nic_int: enp6s0
+                    ntp: 143.205.64.56 143.205.64.57
+
+        nodes:
+            hosts:
+                node[1:31]:
+            vars:
+                ansible_connection: ssh
+                ansible_user: pi
+                ansible_pass: raspberry
+                ansible_host: "10.42.0.1{{ '%02d'|format(inventory_hostname.split('node')[1]|int) }}"
+
+        jetsons:
+            hosts:
+                jetson[1:5]:
+            vars:
+                ansible_connection: ssh
+                ansible_user: jetson
+                ansible_pass: nano
+                ansible_sudo_pass: nano
+                ansible_host: "10.42.0.2{{ '%02d'|format(inventory_hostname.split('jetson')[1]|int) }}"

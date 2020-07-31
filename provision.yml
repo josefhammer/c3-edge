@@ -1,0 +1,5 @@
+---
+- hosts: gateway,nodes,jetsons  # 'all' does not match localhost
+  roles: 
+    - common
+    - docker
