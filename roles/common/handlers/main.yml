@@ -1,0 +1,2 @@
+---
+- import_tasks: "../{{ role_name }}-handlers.yml"

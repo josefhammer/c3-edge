@@ -1,0 +1,36 @@
+---
+- name: Add shell alias 'll'
+  lineinfile:
+    path: ~/.bash_aliases
+    regexp: '^alias ll='
+    line: alias ll='ls -lA'
+    insertafter: alias.*
+    state: present
+    create: yes
+
+- name: Force time sync  # just in case there where issues (we need the correct time for apt)
+  systemd:
+    state: restarted
+    daemon_reload: yes
+    name: systemd-timesyncd
+  become: true
+
+- name: Update & upgrade all packages  # Run the equivalent of "apt-get update + upgrade" (unless done recently)
+  apt:
+    update_cache: yes
+    cache_valid_time: 36000
+    upgrade: dist
+  become: true
+  notify: reboot                       # Absolutely necessary _before_ the installation of Docker (will fail consistently otherwise!)             
+
+- name: Install common tools
+  apt:
+    pkg:
+      - vim
+      - nmap
+      - python3-pip
+      - python-setuptools
+    state: present
+  become: true
+
+- meta: flush_handlers                 # Absolutely necessary _before_ the installation of Docker (will fail consistently otherwise!)

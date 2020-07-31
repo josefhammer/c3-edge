@@ -1,0 +1,67 @@
+---
+- name: Check if already present
+  command: which docker
+  failed_when: false
+  changed_when: false
+  register: docker_available
+
+- name: Download install script
+  get_url:
+    url: https://get.docker.com/
+    dest: /tmp/get-docker.sh
+    mode: u+x
+  when: docker_available.rc == 1
+
+- name: Run install script
+  shell: sh /tmp/get-docker.sh
+  environment:
+    CHANNEL: stable
+    APT_KEY_DONT_WARN_ON_DANGEROUS_USAGE: 1  # https://github.com/zenato/docker-puppeteer/issues/4
+  when: docker_available.rc == 1
+  become: true
+  notify:
+    - reboot 
+
+- name: Remove install script
+  file:
+    path: /tmp/get-docker.sh
+    state: absent
+    
+- name: Set to auto-start
+  service:
+    name: docker
+    state: started
+    enabled: true
+  become: true
+  notify:
+    - reboot 
+
+- name: Install required tools for Docker Compose installation
+  apt:
+    pkg:
+      - python3-pip
+      - python-setuptools
+      - libffi-dev
+      - libssl-dev
+      - python-openssl
+    state: present
+  become: true
+
+- name: Install Docker Compose 
+  pip:
+    name: docker-compose
+    state: present
+    executable: "pip3"
+  become: true
+
+- name: Add user to docker group
+  user:
+    name: "{{ ansible_user }}"  # Remember to log out and back in for this to take effect!
+    groups: docker
+    append: true
+  become: true
+  notify:
+    - reboot 
+
+# To remove Docker:
+# sudo apt -y remove --purge docker-ce docker-ce-cli

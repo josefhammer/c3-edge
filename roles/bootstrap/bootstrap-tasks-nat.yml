@@ -1,0 +1,126 @@
+---
+# NOTE: The commented-out steps would be necessary if you do NOT want to use DnsMasq but IpTables only!
+#       However, while such a solution would work fine, it needs reconfiguring in case the DNS-IP changes
+#       and as such is not very resilient. Therefore, the current solution uses DnsMasq since that 
+#       approach promises to be more stable in the long run.
+#
+## Use Dig to find the IP of a working DNS server
+##
+# - name: Install dig on gateway
+#   apt: 
+#     pkg: dnsutils
+#     state: present
+#   become: true
+
+# - name: Get IP of a working DNS server (1/2)
+#   shell: dig google.com | grep SERVER
+#   register: dnsserver
+
+# - name: Get IP of a working DNS server (2/2)
+#   set_fact:
+#     real_dns: "{{ dnsserver.stdout | regex_search(regexp,'\\1') | join('') }}"
+#   vars:
+#     regexp: '.+\((.+)\).*'
+
+
+- name: Activate NAT / IP Forwarding on gateway
+  block:  
+    - name: Make port 53 available for DnsMasq (Ubuntu)  # https://jonamiki.com/2020/01/29/dnsmasq-failed-to-create-listening-socket-for-port-53-address-already-in-use/
+      block:
+        - name: Stop systemd-resolved
+          shell: systemctl stop systemd-resolved
+
+        - name: Disable DNSStubListener
+          lineinfile:
+            path: /etc/systemd/resolved.conf
+            regexp: '^#?DNSStubListener='
+            line: DNSStubListener=no
+            state: present
+
+        - name: Start systemd-resolved
+          shell: systemctl start systemd-resolved
+
+      when: ansible_facts['architecture'] == "x86_64"  # Ubuntu only; Raspberry Pi gateway has no issues
+
+
+    - name: Install dnsmasq
+      apt:
+        pkg: dnsmasq
+        state: present
+
+    - name: Configure DHCP for Jetsons (1/2)
+      lineinfile:
+        path: /etc/dnsmasq.conf
+        regexp: '^#?interface='  # uncomment this line
+        line: interface={{ hostvars['gateway']['nic_int'] }}
+        state: present
+      when: "'jetsons' in groups"  # only if this group exists
+      notify: reboot
+
+    - name: Configure DHCP for Jetsons (2/2)
+      lineinfile:
+        path: /etc/dnsmasq.conf
+        regexp: '^dhcp-range='
+        line: dhcp-range={{ hostvars['gateway']['nic_int'] }},{{ groups['jetsons'] | map('extract', hostvars, ['ansible_host']) | sort | first }},{{ groups['jetsons'] | map('extract', hostvars, ['ansible_host']) | sort | last }},12h
+        state: present
+      when: "'jetsons' in groups"  # only if this group exists
+      notify: reboot
+
+    - name: Configure time servers (DHCP)
+      lineinfile:
+        path: /etc/dnsmasq.conf
+        regexp: '^dhcp-option=option:ntp-server,' 
+        line: dhcp-option=option:ntp-server,{{ hostvars['gateway']['ntp'].split() | join(',') }}
+        insertafter: '#dhcp-option=option:ntp-server.*'
+        state: present
+      notify: reboot
+  
+    - name: Activate IP forwarding
+      lineinfile:
+        path: /etc/sysctl.conf
+        regexp: 'net\.ipv4\.ip_forward\s*='  # uncomment this line
+        line: net.ipv4.ip_forward=1
+        state: present
+
+    - name: Switch from nf_tables to iptables (RPi)
+      command: "{{ item }}"
+      with_items:
+        - update-alternatives --set iptables /usr/sbin/iptables-legacy    # Switch from nf_tables to iptables
+        - update-alternatives --set ip6tables /usr/sbin/ip6tables-legacy  # Switch from nf_tables to iptables
+      when: not ansible_facts['architecture'] == "x86_64"
+
+    - name: Activate NAT
+      command: "{{ item }}"
+      with_items:
+        # flush all rules
+        - iptables -P INPUT ACCEPT
+        - iptables -P FORWARD ACCEPT
+        - iptables -P OUTPUT ACCEPT
+        - iptables -t nat -F
+        - iptables -t mangle -F
+        - iptables -F
+        - iptables -X
+        # install NAT rules
+        - iptables -t nat -A POSTROUTING -o {{ hostvars['gateway']['nic_ext'] }} -j MASQUERADE
+        - iptables -A FORWARD -i {{ hostvars['gateway']['nic_ext'] }} -o {{ hostvars['gateway']['nic_int'] }} -m conntrack --ctstate RELATED,ESTABLISHED,DNAT -j ACCEPT
+        - iptables -A FORWARD -i {{ hostvars['gateway']['nic_int'] }} -o {{ hostvars['gateway']['nic_ext'] }} -j ACCEPT
+        # DNS forwarding  # see comment at the top --> we use DnsMasq instead
+        # - iptables -t nat -A PREROUTING -p tcp --dst {{ hostvars['gateway'].ansible_host }} --dport 53 -j DNAT --to-destination {{real_dns}}:53
+        # - iptables -t nat -A PREROUTING -p udp --dst {{ hostvars['gateway'].ansible_host }} --dport 53 -j DNAT --to-destination {{real_dns}}:53
+
+    - name: Make IpTables rules persistent (1/3) # https://linuxconfig.org/how-to-make-iptables-rules-persistent-after-reboot-on-linux
+      shell: "{{ item }}"
+      loop:
+        - echo iptables-persistent iptables-persistent/autosave_v4 boolean true | debconf-set-selections
+        - echo iptables-persistent iptables-persistent/autosave_v6 boolean true | debconf-set-selections
+
+    - name: Make IpTables rules persistent (2/3) 
+      apt:
+        pkg: iptables-persistent
+        state: present
+
+    - name: Make IpTables rules persistent (3/3) 
+      shell: iptables-save > /etc/iptables/rules.v4
+
+  become: true
+  when: inventory_hostname == "gateway"

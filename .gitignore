@@ -1,0 +1,4 @@
+*.retry
+*.pyc
+.DS_Store
+/hosts.yml
