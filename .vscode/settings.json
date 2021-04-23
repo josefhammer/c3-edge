@@ -2,8 +2,8 @@
     "sync-rsync.onSave": true,
     "sync-rsync.sites": [
         {
-            "remotePath": "edge@edgegw.itec.aau.at:~/synced",
-            "_remotePath": "pi@gateway.local:~/synced",
+            "_remotePath": "edge@egs-itec.aau.at:~/synced",
+            "remotePath": "pi@gateway.local:~/synced",
         }
     ],
     "sync-rsync.delete": true,
