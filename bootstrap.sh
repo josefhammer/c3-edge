@@ -5,9 +5,10 @@ DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 echo "** Change Gateway Password (leave current password blank if changed already):"
 passwd
 
-# Install Ansible, Git, SSHPass
+# Install Ansible via PIP3 (only old version available via apt on Raspberry Pi)
 sudo apt -y update
-sudo apt -y install ansible
+sudo apt -y install python3-pip
+sudo pip3 install ansible
 
 pushd $DIR  # ansible.cfg is only read from the _current_ working directory
 
