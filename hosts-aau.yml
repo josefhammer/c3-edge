@@ -5,6 +5,7 @@ all:
                 gateway:
                     ansible_connection: local
                     ansible_host: 10.42.0.1  # default gateway address for all nodes
+                    ansible_user: edge
                     nic_ext: enp5s0
                     nic_int: enp6s0
                     ntp: 143.205.64.56 143.205.64.57
