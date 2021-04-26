@@ -73,6 +73,7 @@
         line: dhcp-option=option:ntp-server,{{ hostvars['gateway']['ntp'].split() | join(',') }}
         insertafter: '#dhcp-option=option:ntp-server.*'
         state: present
+      when: hostvars['gateway'].ntp is defined  # AAU only b/c public NTP servers are blocked
       notify: reboot
   
     - name: Activate IP forwarding

@@ -107,7 +107,7 @@
     state: present
     create: yes
   become: true
-  when: not inventory_hostname == "gateway"
+  when: not inventory_hostname == "gateway" and hostvars['gateway'].ntp is defined
 
 - name: Set time zone
   command: timedatectl set-timezone Europe/Vienna
