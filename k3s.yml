@@ -1,0 +1,4 @@
+---
+- hosts: gateway,nodes,jetsons  # 'all' does not match localhost
+  roles: 
+    - k3s

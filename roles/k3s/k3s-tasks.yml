@@ -1,0 +1,62 @@
+---
+- name: Check if already present
+  command: which k3s
+  failed_when: false
+  changed_when: false
+  register: k3s_available
+
+- name: Download install script
+  get_url:
+    url: https://get.k3s.io
+    dest: /tmp/get-k3s.sh
+    mode: u+x
+  when: k3s_available.rc == 1
+
+- name: Run install script (gateway)
+  shell: sh /tmp/get-k3s.sh
+  environment:
+    # --bind-address: see https://medium.com/@prasenjitsarkar_79320/k3s-cluster-on-raspberry-pi-gotchas-14f781e7bf6c
+    # --cluster-cidr: the default 10.42.x.x is already used for the regular node IPs
+    INSTALL_K3S_EXEC: --bind-address "{{ hostvars['gateway'].ansible_host }}" --cluster-cidr "10.41.0.0/16" --flannel-iface "{{ hostvars['gateway'].nic_int }}"
+  when: k3s_available.rc == 1 and inventory_hostname == "gateway"
+  become: true
+
+- name: Read K3S_TOKEN
+  slurp:
+    src: "/var/lib/rancher/k3s/server/node-token"
+  register: k3s_token
+  become: true
+  when: inventory_hostname == "gateway"
+
+- name: Run install script (nodes)
+  shell: sh /tmp/get-k3s.sh
+  environment:
+    K3S_URL: https://{{ hostvars['gateway'].ansible_host }}:6443 
+    K3S_TOKEN: "{{ hostvars['gateway'].k3s_token.content | b64decode | trim }}"
+  when: k3s_available.rc == 1 and not inventory_hostname == "gateway"
+  become: true
+
+- name: Remove install script
+  file:
+    path: /tmp/get-k3s.sh
+    state: absent
+
+- name: Set to auto-start (gateway)  # Serves as a check that K3s is installed correctly
+  service:
+    name: k3s
+    state: started
+    enabled: true
+  become: true
+  when: inventory_hostname == "gateway"
+
+- name: Set to auto-start (nodes)  # Serves as a check that K3s is installed correctly
+  service:
+    name: k3s-agent
+    state: started
+    enabled: true
+  become: true
+  when: not inventory_hostname == "gateway"
+
+
+# uninstall from server: /usr/local/bin/k3s-uninstall.sh
+# uninstall from node:   /usr/local/bin/k3s-agent-uninstall.sh
