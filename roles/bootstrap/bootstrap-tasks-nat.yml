@@ -66,6 +66,12 @@
       when: "'jetsons' in groups"  # only if this group exists
       notify: reboot
 
+    - name: Restart dnsmasq (to assign IP addresses to Jetsons)
+      service:
+        name: dnsmasq
+        state: restarted
+      when: "'jetsons' in groups"  # only if this group exists
+
     - name: Configure time servers (DHCP)
       lineinfile:
         path: /etc/dnsmasq.conf
