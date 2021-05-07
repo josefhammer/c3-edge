@@ -182,7 +182,7 @@
       throttle: 1  # avoid race condition: run for one machine in parallel only
       become: true
       
-    - name:
+    - name: Restart DNSMasq
       service: 
         name: dnsmasq
         state: restarted      
@@ -191,4 +191,3 @@
       delegate_to: 127.0.0.1
     
   when: "'jetsons' in group_names"
-
