@@ -17,3 +17,13 @@ all:
                 ansible_user: pi
                 ansible_pass: raspberry
                 ansible_host: "10.42.0.1{{ '%02d'|format(inventory_hostname.split('node')[1]|int) }}"
+
+        jetsons:
+            hosts:
+                jetson[1:2]:
+            vars:
+                ansible_connection: ssh
+                ansible_user: jetson
+                ansible_pass: nano
+                ansible_sudo_pass: nano
+                ansible_host: "10.42.0.2{{ '%02d'|format(inventory_hostname.split('jetson')[1]|int) }}"
