@@ -65,7 +65,7 @@
   when: not hostvars[inventory_hostname].ansible_connection == "local"
 
 
-- name: Set fixed IP address and route to gateway (RPi) # using /etc/dhcpcd.exit-hook caused issues with Docker 
+- name: Set fixed IP address (RPi) # using /etc/dhcpcd.exit-hook caused issues with Docker 
   block:
     - name: Set fixed IP and default route for eth0
       lineinfile:
@@ -78,9 +78,15 @@
       lineinfile:
         path: /etc/dhcpcd.conf
         regexp: '^static ip_address='
-        line: static ip_address={{ hostvars[inventory_hostname].ansible_host }}/24
+        line: static ip_address={{ hostvars[inventory_hostname].ansible_host }}/16
         state: present
 
+  become: true
+  # RPi nodes and RPi gateway only
+  when: "'nodes' in group_names or (inventory_hostname == 'gateway' and ansible_facts['architecture'] == 'x86_64')"
+
+- name: Set route to gateway (RPi) # using /etc/dhcpcd.exit-hook caused issues with Docker 
+  block:
     - name: Set route to gateway
       lineinfile:
         path: /etc/dhcpcd.conf
