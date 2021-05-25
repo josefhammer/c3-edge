@@ -1,0 +1,22 @@
+{
+	"folders": [
+		{
+			"path": "."
+		}
+	],
+	"settings": {
+		"sync-rsync.onSave": true,
+		"sync-rsync.sites": [
+			{
+				"_remotePath": "edge@egs-itec.aau.at:~/synced",
+				"remotePath": "pi@gateway.local:~/synced"
+			}
+		],
+		"sync-rsync.delete": true,
+		"sync-rsync.exclude": [
+			".git",
+			".vscode",
+			"hosts.yml"
+		]
+	}
+}
