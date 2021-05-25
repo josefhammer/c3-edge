@@ -7,4 +7,4 @@ network:
         {{nic_int}}:
             dhcp4: no
             dhcp6: no
-            addresses: [{{ansible_host}}/16]
+            addresses: [{{int_cidr}}]
