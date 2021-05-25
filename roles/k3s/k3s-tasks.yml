@@ -32,14 +32,14 @@
   slurp:
     src: "/var/lib/rancher/k3s/server/node-token"
   register: k3s_token
+  delegate_to: 127.0.0.1
   become: true
-  when: inventory_hostname == "gateway"
 
 - name: Run install script (nodes)
   shell: sh /tmp/get-k3s.sh
   environment:
     K3S_URL: https://{{ hostvars['gateway'].ansible_host }}:6443 
-    K3S_TOKEN: "{{ hostvars['gateway'].k3s_token.content | b64decode | trim }}"
+    K3S_TOKEN: "{{ k3s_token.content | b64decode | trim }}"
   when: k3s_available.rc == 1 and not inventory_hostname == "gateway"
   become: true
 
