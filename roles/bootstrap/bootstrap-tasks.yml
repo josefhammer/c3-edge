@@ -104,15 +104,23 @@
   lineinfile:
     path: /etc/systemd/timesyncd.conf
     regexp: '^#?NTP='
-    line: NTP={{ hostvars['gateway'].ntp }}
+    line: NTP={{ hostvars['gateway'].ntp | default('') }}
     state: present
     create: yes
   become: true
-  when: not inventory_hostname == "gateway" and hostvars['gateway'].ntp is defined
+  when: not inventory_hostname == "gateway"
 
 - name: Set time zone
   command: timedatectl set-timezone Europe/Vienna
   become: true
+
+- name: Clear any wrong date/time language
+  lineinfile:
+    path: ~/.bashrc
+    regexp: '^LC_TIME=.*'
+    line: LC_TIME=
+    state: present
+    create: yes
 
 
 - name: Set up node name  # DO THIS AT THE END !! sudo will be really slow once the hostname is modified (until rebooting)
