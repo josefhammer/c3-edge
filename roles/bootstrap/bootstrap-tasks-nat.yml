@@ -48,23 +48,14 @@
         pkg: dnsmasq
         state: present
 
-    - name: Configure DHCP for Jetsons (1/2)
-      lineinfile:
+    - name: Configure DHCP for Jetsons
+      blockinfile:
         path: /etc/dnsmasq.conf
-        regexp: '^#?interface='  # uncomment this line
-        line: interface={{ hostvars['gateway']['nic_int'] }}
-        state: present
+        marker: "# {mark} DHCP Jetsons"
+        block: |
+          interface={{ hostvars['gateway']['ifnodes'] }}
+          dhcp-range={{ hostvars['gateway'].ifnodes }},{{ groups['jetsons'] | map('extract', hostvars, ['ansible_host']) | sort | first }},{{ groups['jetsons'] | map('extract', hostvars, ['ansible_host']) | sort | last }},12h
       when: "'jetsons' in groups"  # only if this group exists
-      notify: reboot
-
-    - name: Configure DHCP for Jetsons (2/2)
-      lineinfile:
-        path: /etc/dnsmasq.conf
-        regexp: '^dhcp-range='
-        line: dhcp-range={{ hostvars['gateway']['nic_int'] }},{{ groups['jetsons'] | map('extract', hostvars, ['ansible_host']) | sort | first }},{{ groups['jetsons'] | map('extract', hostvars, ['ansible_host']) | sort | last }},12h
-        state: present
-      when: "'jetsons' in groups"  # only if this group exists
-      notify: reboot
 
     - name: Restart dnsmasq (to assign IP addresses to Jetsons)
       service:
@@ -109,8 +100,8 @@
         - iptables -X
         # install NAT rules
         - iptables -t nat -A POSTROUTING -o {{ hostvars['gateway']['nic_ext'] }} -j MASQUERADE
-        - iptables -A FORWARD -i {{ hostvars['gateway']['nic_ext'] }} -o {{ hostvars['gateway']['nic_int'] }} -m conntrack --ctstate RELATED,ESTABLISHED,DNAT -j ACCEPT
-        - iptables -A FORWARD -i {{ hostvars['gateway']['nic_int'] }} -o {{ hostvars['gateway']['nic_ext'] }} -j ACCEPT
+        - iptables -A FORWARD -i {{ hostvars['gateway']['nic_ext'] }} -o {{ hostvars['gateway']['ifnodes'] }} -m conntrack --ctstate RELATED,ESTABLISHED,DNAT -j ACCEPT
+        - iptables -A FORWARD -i {{ hostvars['gateway']['ifnodes'] }} -o {{ hostvars['gateway']['nic_ext'] }} -j ACCEPT
         # DNS forwarding  # see comment at the top --> we use DnsMasq instead
         # - iptables -t nat -A PREROUTING -p tcp --dst {{ hostvars['gateway'].ansible_host }} --dport 53 -j DNAT --to-destination {{real_dns}}:53
         # - iptables -t nat -A PREROUTING -p udp --dst {{ hostvars['gateway'].ansible_host }} --dport 53 -j DNAT --to-destination {{real_dns}}:53
