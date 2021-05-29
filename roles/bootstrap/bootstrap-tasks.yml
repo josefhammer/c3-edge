@@ -64,26 +64,36 @@
   delegate_to: 127.0.0.1
   when: not hostvars[inventory_hostname].ansible_connection == "local"
 
-- name: Set static IP address (RPi)  # using /etc/dhcpcd.exit-hook caused issues with Docker 
+- name: Set static IP address (RPi gateway)
+  blockinfile:
+    path: /etc/dhcpcd.conf
+    marker: "# {mark} ETH0"
+    block: |
+      interface eth0
+      static ip_address={{ hostvars.gateway.int_cidr if (hostvars.gateway.nic_int == hostvars.gateway.ifnodes) else '0.0.0.0' }}
+  notify: reboot
+  become: true
+  when: inventory_hostname == 'gateway' and not ansible_facts['architecture'] == "x86_64"
+
+- name: Set static IP address (RPi nodes)  # using /etc/dhcpcd.exit-hook caused issues with Docker 
   blockinfile:
     path: /etc/dhcpcd.conf
     marker: "# {mark} ETH0"
     block: |
       interface eth0
       static ip_address={{ hostvars[inventory_hostname].int_cidr }}
-      #static routers=  # ETH0
-      #static domain_name_servers=  # ETH0
+      #static routers=  # GATEWAY
+      #static domain_name_servers=  # GATEWAY
   notify: reboot
   become: true
-  # RPi nodes and RPi gateway only
-  when: "'nodes' in group_names or (inventory_hostname == 'gateway' and ansible_facts['architecture'] != 'x86_64')"
+  when: "'nodes' in group_names"
 
-- name: Set route to gateway (RPi) # using /etc/dhcpcd.exit-hook caused issues with Docker 
+- name: Set route to gateway and DNS (RPi nodes)  # using /etc/dhcpcd.exit-hook caused issues with Docker 
   block:
     - name: Set route to gateway
       lineinfile:
         path: /etc/dhcpcd.conf
-        regexp: '^#?static routers=.*  # ETH0'
+        regexp: '^#?static routers=.*  # GATEWAY'
         line: static routers={{ hostvars['gateway'].ansible_host }}
         insertafter: interface eth0
         state: present
@@ -92,7 +102,7 @@
     - name: Set DNS
       lineinfile:
         path: /etc/dhcpcd.conf
-        regexp: '^#?static domain_name_servers=.*  # ETH0'
+        regexp: '^#?static domain_name_servers=.*  # GATEWAY'
         line: static domain_name_servers={{ hostvars['gateway'].ansible_host }}
         insertafter: interface eth0
         state: present
