@@ -1,4 +1,11 @@
 ---
+- hosts: gateway
+  tasks:
+    - name: Include OVS VLAN overlay if necessary
+      include_role:
+        name: ovs-vlan-bridge
+      when: hostvars.gateway.nic_int != hostvars.gateway.ifnodes
+
 - hosts: gateway,nodes,jetsons  # 'all' does not match localhost
   gather_facts: False
   roles: 
