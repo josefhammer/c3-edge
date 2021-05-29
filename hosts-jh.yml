@@ -8,6 +8,7 @@ all:
                     ansible_user: pi
                     nic_ext: wlan0
                     nic_int: eth0
+                    ifnodes: eth0
                     k3s_cidr: 10.41.0.0/16
                     int_cidr: "{{ ansible_host }}/24"
 

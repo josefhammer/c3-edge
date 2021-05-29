@@ -1,15 +1,14 @@
 ---
-  # Reboot handler is split into two parts so the nodes will be rebooted first, and only then the localhost will be rebooted
-  
-  - name: reboot nodes
-    reboot:
-    become: true
-    when: not hostvars[inventory_hostname].ansible_connection == "local"
-    listen: "reboot"
-  
-  - name: reboot localhost  # Ansible does not allow the reboot command on localhost -> we need to call the shell command directly
-    shell: reboot
-    become: true
-    when: hostvars[inventory_hostname].ansible_connection == "local"
-    listen: "reboot"
-  
+# Reboot handler is split into two parts so the nodes will be rebooted first, and only then the localhost will be rebooted
+
+- name: reboot nodes
+  reboot:
+  become: true
+  when: not hostvars[inventory_hostname].ansible_connection == "local"
+  listen: "reboot"
+
+- name: reboot localhost  # Ansible does not allow the reboot command on localhost -> we need to call the shell command directly
+  shell: reboot
+  become: true
+  when: hostvars[inventory_hostname].ansible_connection == "local"
+  listen: "reboot"

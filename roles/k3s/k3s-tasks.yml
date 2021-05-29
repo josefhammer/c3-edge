@@ -24,7 +24,7 @@
   environment:
     # --bind-address: see https://medium.com/@prasenjitsarkar_79320/k3s-cluster-on-raspberry-pi-gotchas-14f781e7bf6c
     # --cluster-cidr: the default 10.42.x.x is already used for the regular node IPs
-    INSTALL_K3S_EXEC: --bind-address "{{ hostvars['gateway'].ansible_host }}" --cluster-cidr "{{ hostvars['gateway'].k3s_cidr }}" --flannel-iface "{{ hostvars['gateway'].nic_int }}"
+    INSTALL_K3S_EXEC: --bind-address "{{ hostvars['gateway'].ansible_host }}" --cluster-cidr "{{ hostvars['gateway'].k3s_cidr }}" --flannel-iface "{{ hostvars['gateway'].ifnodes }}"
   when: k3s_available.rc == 1 and inventory_hostname == "gateway"
   become: true
 
@@ -67,3 +67,5 @@
 
 # uninstall from server: /usr/local/bin/k3s-uninstall.sh
 # uninstall from node:   /usr/local/bin/k3s-agent-uninstall.sh
+
+# uninstall from all nodes: ansible nodes:jetsons -a "/usr/local/bin/k3s-agent-uninstall.sh" --become
