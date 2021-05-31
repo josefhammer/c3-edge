@@ -5,6 +5,11 @@
     cache_valid_time: 36000
   become: true
 
+- name: Calculate vars to make conditional tasks easier
+  set_fact:
+    vlanif: "{{ 'present' if hostvars.gateway.usevlan else 'absent' }}" 
+    ovsall: "{{ 'present' if hostvars.gateway.usevlan and (hostvars.gateway.nic_int != hostvars.gateway.ifnodes) else 'absent' }}"
+
 
 # Install Linux VLAN and eth0.x devices
 #
@@ -19,14 +24,14 @@
         name: 8021q
         state: present
 
-    # Install Linux VLAN devices
+    # Install Linux VLAN devices (if gateway.usevlan)
     - block:
         - name: Add eth0.x device # sudo vconfig add eth0.x 
           lineinfile:
             path: /etc/network/interfaces.d/vlans
             regexp: '^auto {{ hostvars.gateway.nic_int }}.{{ hostvars[item].ansible_host.split(".")[3] }}'
             line: auto {{ hostvars.gateway.nic_int }}.{{ hostvars[item].ansible_host.split('.')[3] }}
-            state: present
+            state: "{{ vlanif }}"
             create: true
           loop: '{{ query("inventory_hostnames", "nodes:jetsons") }}'
 
@@ -35,7 +40,7 @@
             path: /etc/network/interfaces.d/vlans
             regexp: '^iface {{ hostvars.gateway.nic_int }}.{{ hostvars[item].ansible_host.split(".")[3] }}'
             line: "iface {{ hostvars.gateway.nic_int }}.{{ hostvars[item].ansible_host.split('.')[3] }} inet manual"
-            state: present
+            state: "{{ vlanif }}"
             create: true
           loop: '{{ query("inventory_hostnames", "nodes:jetsons") }}'
 
@@ -47,37 +52,44 @@
   become: true
 
 
-# Install and configure OVS Bridge
+# Install OVS
+- name: Install OVS
+  apt:
+    pkg: 
+      - openvswitch-switch 
+      - openvswitch-testcontroller 
+      - openvswitch-common
+    state: present
+  become: true
+
+
+# Configure OVS-All Bridge (if gateway.ifnodes != gateway.nic_int)
 #
 - block:
-    - name: Install OVS
-      apt:
-        pkg: 
-          - openvswitch-switch 
-          - openvswitch-testcontroller 
-          - openvswitch-common
-        state: present
-
     - name: Drop OVS Bridge if it exists already  # to achieve a clean state
       openvswitch_bridge:
         bridge: "{{ hostvars.gateway.ifnodes }}"
         state: absent
 
-    - name: Create OVS Bridge  # sudo ovs-vsctl add-br {bridge}  # permanent
-      openvswitch_bridge:
-        bridge: "{{ hostvars.gateway.ifnodes }}"
-        state: present
+    - block:
+        - name: Create OVS Bridge  # sudo ovs-vsctl add-br {bridge}  # permanent
+          openvswitch_bridge:
+            bridge: "{{ hostvars.gateway.ifnodes }}"
+            state: present
 
-    - name: Add ports to nodes  # sudo ovs-vsctl add-port {bridge} eth0.x  # permanent
-      openvswitch_port:
-        bridge: "{{ hostvars.gateway.ifnodes }}"
-        port: "{{ hostvars.gateway.nic_int }}.{{ hostvars[item].ansible_host.split('.')[3] }}"
-        state: present
-      loop: '{{ query("inventory_hostnames", "nodes:jetsons") }}'
+        - name: Add ports to nodes  # sudo ovs-vsctl add-port {bridge} eth0.x  # permanent
+          openvswitch_port:
+            bridge: "{{ hostvars.gateway.ifnodes }}"
+            port: "{{ hostvars.gateway.nic_int }}.{{ hostvars[item].ansible_host.split('.')[3] }}"
+            state: present
+          loop: '{{ query("inventory_hostnames", "nodes:jetsons") }}'
+
+      when: ovsall == 'present'
 
     ## Show available ports: sudo ovs-vsctl list-ports o-all
     ## Delete port: sudo ovs-vsctl del-port o-all {port}
     ## https://www.opencloudblog.com/?p=240
+      
 
     - name: Set static IP address for ovs-vlan-bridge  # sudo ifconfig o-all 10.42.0.1/24
       blockinfile:                                     # sudo ip route add 10.42.0.0/24 dev o-all
@@ -86,6 +98,7 @@
         block: |
           interface {{ hostvars.gateway.ifnodes }}
           static ip_address={{ hostvars['gateway'].int_cidr }}
+        state: "{{ ovsall }}"
       notify: reboot
 
     - name: Drop static IP address of eth0  # the IP address set via /boot on the SD card
@@ -94,7 +107,7 @@
         regexp: '^ip addr flush dev {{ hostvars.gateway.nic_int }}'
         line: 'ip addr flush dev {{ hostvars.gateway.nic_int }}'   
         insertbefore: exit 0
-        state: present
+        state: "{{ ovsall }}"
       notify: reboot
 
   become: true
