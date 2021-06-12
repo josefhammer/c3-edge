@@ -9,6 +9,10 @@ all:
                     nic_ext: enp5s0
                     nic_int: enp6s0
                     ntp: 143.205.64.56 143.205.64.57
+                    usevlan: false  # install VLAN interfaces
+                    ifnodes: "{{ nic_int }}"  # interface to access the nodes
+                    k3s_cidr: 10.41.0.0/16
+                    int_cidr: "{{ ansible_host }}/24"
 
         nodes:
             hosts:
@@ -18,6 +22,7 @@ all:
                 ansible_user: pi
                 ansible_pass: raspberry
                 ansible_host: "10.42.0.1{{ '%02d'|format(inventory_hostname.split('node')[1]|int) }}"
+                int_cidr: "{{ ansible_host }}/24"
 
         jetsons:
             hosts:
@@ -28,3 +33,4 @@ all:
                 ansible_pass: nano
                 ansible_sudo_pass: nano
                 ansible_host: "10.42.0.2{{ '%02d'|format(inventory_hostname.split('jetson')[1]|int) }}"
+                int_cidr: "{{ ansible_host }}/24"
