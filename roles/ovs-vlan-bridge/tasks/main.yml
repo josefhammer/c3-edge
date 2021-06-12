@@ -1,2 +1,0 @@
----
-- import_tasks: "../{{ role_name }}-tasks.yml"

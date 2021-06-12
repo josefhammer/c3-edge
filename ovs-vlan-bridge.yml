@@ -1,4 +1,0 @@
----
-- hosts: gateway
-  roles: 
-    - ovs-vlan-bridge

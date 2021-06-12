@@ -4,6 +4,43 @@
   when: inventory_hostname == "gateway"
 
 
+- name: Set up gateway
+  block:
+    - name: Set up gateway NICs (Ubuntu)
+      block:
+        - name: Write Netplan config (Ubuntu)
+          template:
+            src: 05-edge-netplan.yaml.j2
+            dest: /etc/netplan/05-edge.yaml
+            mode: '0644'
+            backup: yes
+
+        - name: Apply Netplan config (Ubuntu)
+          shell: netplan apply
+          
+      become: true
+      when: ansible_facts['architecture'] == "x86_64"  # Ubuntu only; Raspberry Pi gateway has IP hardcoded in cmdline.txt
+
+    - name: Include VLAN setup for gateway
+      include_tasks: "bootstrap-tasks-vlan.yml"
+
+    - name: Include OVS-All setup for gateway
+      include_tasks: "bootstrap-tasks-oall.yml"
+  
+    - name: Include tasks for gateway NAT / firewall
+      include_tasks: "bootstrap-tasks-nat.yml"
+
+    - name: Update & upgrade all packages on gateway  # Run the equivalent of "apt-get update + upgrade" (unless done recently)
+      apt:                                 # Run here for gateway to avoid one additional reboot
+        update_cache: yes
+        cache_valid_time: 3600
+        upgrade: dist
+      become: true
+      notify: reboot                       # Absolutely necessary _before_ the installation of Docker (will fail consistently otherwise!)
+
+  when: inventory_hostname == "gateway"
+
+
 # Set up passwordless login first (requires gather_facts: False)
 #
 # Prepare passwordless login to nodes (required for bootstrap-node :: ssh-copy-id)
@@ -15,6 +52,12 @@
   become: false
   run_once: true
   delegate_to: 127.0.0.1
+
+- name: Remove possible offending previous SSH keys from localhost
+  shell: ssh-keygen -f "/home/{{ hostvars.gateway.ansible_user }}/.ssh/known_hosts" -R "{{ ansible_host }}"
+  become: false
+  delegate_to: 127.0.0.1
+  when: "'nodes' in group_names"
 
 - name: Install sshpass on localhost
   apt: 
@@ -132,6 +175,20 @@
     state: present
     create: yes
 
+- name: Force time sync  # we need the correct time for apt
+  systemd:
+    state: restarted
+    daemon_reload: yes
+    name: systemd-timesyncd
+  become: true
+
+
+# Set up eth0.x on all nodes
+#
+- name: Include VLAN setup for nodes/jetsons
+  include_tasks: "bootstrap-tasks-vlan.yml"
+  when: not inventory_hostname == "gateway"
+
 
 - name: Set up node name  # DO THIS AT THE END !! sudo will be really slow once the hostname is modified (until rebooting)
   block:
@@ -150,37 +207,6 @@
   become: true
 
   
-- name: Set up gateway
-  block:
-    - name: Set up gateway NICs (Ubuntu)
-      block:
-        - name: Write Netplan config (Ubuntu)
-          template:
-            src: 05-edge-netplan.yaml.j2
-            dest: /etc/netplan/05-edge.yaml
-            mode: '0644'
-            backup: yes
-
-        - name: Apply Netplan config (Ubuntu)
-          shell: netplan apply
-          
-      become: true
-      when: ansible_facts['architecture'] == "x86_64"  # Ubuntu only; Raspberry Pi gateway has IP hardcoded in cmdline.txt
-  
-    - name: Include tasks for gateway NAT / firewall
-      include_tasks: "bootstrap-tasks-nat.yml"
-
-    - name: Update & upgrade all packages on gateway  # Run the equivalent of "apt-get update + upgrade" (unless done recently)
-      apt:                                 # Run here for gateway to avoid one additional reboot
-        update_cache: yes
-        cache_valid_time: 3600
-        upgrade: dist
-      become: true
-      notify: reboot                       # Absolutely necessary _before_ the installation of Docker (will fail consistently otherwise!)
-
-  when: inventory_hostname == "gateway"
-
-
 # Freeze IP addresses given by DHCP (Jetsons)
 #
 - name: Freeze IP addresses

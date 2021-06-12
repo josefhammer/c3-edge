@@ -1,10 +1,4 @@
 ---
-- hosts: gateway
-  tasks:
-    - name: Include OVS and VLAN
-      include_role:
-        name: ovs-vlan-bridge
-
 - hosts: gateway,nodes,jetsons  # 'all' does not match localhost
   gather_facts: False
   roles: 

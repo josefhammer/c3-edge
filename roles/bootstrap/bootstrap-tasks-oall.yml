@@ -1,55 +1,7 @@
 ---
-- name: Update all packages  # sudo apt update
-  apt:
-    update_cache: yes
-    cache_valid_time: 36000
-  become: true
-
 - name: Calculate vars to make conditional tasks easier
   set_fact:
-    vlanif: "{{ 'present' if hostvars.gateway.usevlan else 'absent' }}" 
     ovsall: "{{ 'present' if hostvars.gateway.usevlan and (hostvars.gateway.nic_int != hostvars.gateway.ifnodes) else 'absent' }}"
-
-
-# Install Linux VLAN and eth0.x devices
-#
-- block:
-    - name: Install VLAN
-      apt:
-        pkg: vlan
-        state: present
-
-    - name: Add the 802.1q module  # sudo modprobe 8021q
-      modprobe:
-        name: 8021q
-        state: present
-
-    # Install Linux VLAN devices (if gateway.usevlan)
-    - block:
-        - name: Add eth0.x device # sudo vconfig add eth0.x 
-          lineinfile:
-            path: /etc/network/interfaces.d/vlans
-            regexp: '^auto {{ hostvars.gateway.nic_int }}.{{ hostvars[item].ansible_host.split(".")[3] }}'
-            line: auto {{ hostvars.gateway.nic_int }}.{{ hostvars[item].ansible_host.split('.')[3] }}
-            state: "{{ vlanif }}"
-            create: true
-          loop: '{{ query("inventory_hostnames", "nodes:jetsons") }}'
-
-        - name: Configure eth0.x device
-          lineinfile:
-            path: /etc/network/interfaces.d/vlans
-            regexp: '^iface {{ hostvars.gateway.nic_int }}.{{ hostvars[item].ansible_host.split(".")[3] }}'
-            line: "iface {{ hostvars.gateway.nic_int }}.{{ hostvars[item].ansible_host.split('.')[3] }} inet manual"
-            state: "{{ vlanif }}"
-            create: true
-          loop: '{{ query("inventory_hostnames", "nodes:jetsons") }}'
-
-        - name: Restart network service  # sudo service networking restart eth0
-          ansible.builtin.service:
-            name: networking
-            state: restarted
-
-  become: true
 
 
 # Install OVS
@@ -60,6 +12,8 @@
       - openvswitch-testcontroller 
       - openvswitch-common
     state: present
+    update_cache: yes
+    cache_valid_time: 36000
   become: true
 
 
