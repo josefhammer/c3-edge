@@ -41,6 +41,27 @@
       
       when: inventory_hostname == "gateway"
 
+    # Jetsons: As soon as we install the eth0.x VLAN device, DHCP won't work anymore out of the box
+    #          --> we have to configure that first
+    - block:
+        - name: Add eth0 device for DHCP
+          lineinfile:
+            path: /etc/network/interfaces.d/jetson
+            regexp: '^auto eth0'
+            line: auto eth0
+            state: "{{ vlanif }}"
+            create: true
+
+        - name: Configure eth0 device for DHCP
+          lineinfile:
+            path: /etc/network/interfaces.d/jetson
+            regexp: '^iface eth0 '
+            line: "iface eth0 inet dhcp"
+            state: "{{ vlanif }}"
+            create: true
+
+      when: "'jetsons' in group_names"
+
     # Nodes/Jetsons: Install Linux VLAN devices (if gateway.usevlan)
     - block:
         - name: Add eth0.x device # sudo vconfig add eth0.x 
@@ -58,7 +79,6 @@
             line: "iface eth0.{{ ansible_host.split('.')[3] }} inet manual"
             state: "{{ vlanif }}"
             create: true
-          loop: '{{ query("inventory_hostnames", "nodes:jetsons") }}'
 
       when: not inventory_hostname == "gateway"
 
