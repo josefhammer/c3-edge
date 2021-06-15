@@ -57,6 +57,7 @@
   shell: ssh-keygen -f "/home/{{ hostvars.gateway.ansible_user }}/.ssh/known_hosts" -R "{{ ansible_host }}"
   become: false
   delegate_to: 127.0.0.1
+  throttle: 1  # avoid conflicting access: run for one machine in parallel only
   when: "'nodes' in group_names"
 
 - name: Install sshpass on localhost
