@@ -193,11 +193,14 @@
 
 - name: Set up node name  # DO THIS AT THE END !! sudo will be really slow once the hostname is modified (until rebooting)
   block:
+    # For a system with a permanent IP address, that permanent IP address should be used here instead of 127.0.1.1.
+    # See: https://www.debian.org/doc/manuals/debian-reference/ch05.en.html#_the_hostname_resolution
+    #
     - name: Write node name to /etc/hosts  # otherwise we get error messages
       lineinfile:
         path: /etc/hosts
-        regexp: '^127\.0\.1\.1'
-        line: 127.0.1.1 {{ inventory_hostname }}
+        regexp: '^(127\.0\.1\.1|{{ ansible_host }}) '
+        line: "{{ ansible_host }} {{ inventory_hostname }}"
         state: present
       notify: reboot
       
