@@ -3,7 +3,11 @@ network:
     renderer: networkd
     ethernets:
         {{nic_ext}}:
-            dhcp4: yes
+            addresses: [143.205.173.71/24]
+            gateway4: 143.205.173.1
+            dhcp4: no
+            nameservers:
+                addresses: [143.205.122.10,143.205.176.16]
         {{nic_int}}:
             dhcp4: no
             dhcp6: no
