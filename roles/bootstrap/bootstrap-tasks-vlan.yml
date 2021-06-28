@@ -39,7 +39,7 @@
             create: true
           loop: '{{ query("inventory_hostnames", "nodes:jetsons") }}'
       
-      when: inventory_hostname == "gateway"
+      when: inventory_hostname == "gateway" and ansible_facts['architecture'] != "x86_64"  # for Ubuntu gateway see netplan template
 
     # Jetsons: As soon as we install the eth0.x VLAN device, DHCP won't work anymore out of the box
     #          --> we have to configure that first

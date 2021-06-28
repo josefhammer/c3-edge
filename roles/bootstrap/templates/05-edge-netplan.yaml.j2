@@ -12,3 +12,11 @@ network:
             dhcp4: no
             dhcp6: no
             addresses: [{{int_cidr}}]
+{% if hostvars.gateway.usevlan %}
+    vlans:
+{% for host in query("inventory_hostnames", "nodes:jetsons") %}
+        {{nic_int}}.{{ hostvars[host].ansible_host.split('.')[3] }}:     
+            id: {{ hostvars[host].ansible_host.split('.')[3] }}
+            link: {{nic_int}}
+{% endfor %}
+{% endif %}
