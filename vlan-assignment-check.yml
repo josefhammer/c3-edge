@@ -1,0 +1,4 @@
+---
+- hosts: nodes,jetsons
+  roles: 
+    - vlan-assignment-check

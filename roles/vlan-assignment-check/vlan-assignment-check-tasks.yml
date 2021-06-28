@@ -1,0 +1,37 @@
+---
+# Verifies the correct assignment of VLAN-IDs to the nodes (i.e. VLAN 120 should be node20).
+#
+# Creates a subnet per node on the respective VLAN (e.g. eth0.120) and tries to compare the expected node name 
+# with the received node name. Actually, the comparison does not matter: If there is a wrong VLAN-ID assignment, 
+# the host simply won't be reachable and you'll get the corresponding error message.
+#
+- block:
+    - name: Remove all IP addresses from node interface
+      command: "ip addr flush dev eth0.{{ ansible_host.split('.')[3] }}"
+
+    - name: Set IP address on node  
+      command: "ip addr add 10.1.{{ ansible_host.split('.')[3] }}.{{ ansible_host.split('.')[3] }}/24 dev eth0.{{ ansible_host.split('.')[3] }}"
+
+    - name: Remove all IP addresses from gateway interface
+      command: "ip addr flush dev {{ hostvars.gateway.nic_int }}.{{ ansible_host.split('.')[3] }}"
+      delegate_to: 127.0.0.1
+
+    - name: Set IP address on gateway 
+      command: "ip addr add 10.1.{{ ansible_host.split('.')[3] }}.1/24 dev {{ hostvars.gateway.nic_int }}.{{ ansible_host.split('.')[3] }}"
+      delegate_to: 127.0.0.1
+
+    - name: Check node name (accessing from gateway)
+      command: sshpass -p {{ ansible_pass }} ssh -o StrictHostKeyChecking=no {{ ansible_user }}@10.1.{{ ansible_host.split('.')[3] }}.{{ ansible_host.split('.')[3] }} hostname
+      delegate_to: 127.0.0.1
+      register: result_hostname
+      failed_when: result_hostname.stdout != inventory_hostname
+
+    - name: Remove all IP addresses from gateway interface
+      command: "ip addr flush dev {{ hostvars.gateway.nic_int }}.{{ ansible_host.split('.')[3] }}"
+      delegate_to: 127.0.0.1
+
+    - name: Remove all IP addresses from node interface
+      command: "ip addr flush dev eth0.{{ ansible_host.split('.')[3] }}"
+
+  become: true
+  when: inventory_hostname != "gateway"
