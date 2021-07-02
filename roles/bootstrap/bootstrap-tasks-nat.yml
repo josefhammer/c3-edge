@@ -40,7 +40,7 @@
         - name: Start systemd-resolved
           shell: systemctl start systemd-resolved
 
-      when: ansible_facts['architecture'] == "x86_64"  # Ubuntu only; Raspberry Pi gateway has no issues
+      when: hostvars.gateway.host_os == "ubuntu"  # Ubuntu only; Raspberry Pi gateway has no issues
 
 
     - name: Install dnsmasq
@@ -85,7 +85,7 @@
       with_items:
         - update-alternatives --set iptables /usr/sbin/iptables-legacy    # Switch from nf_tables to iptables
         - update-alternatives --set ip6tables /usr/sbin/ip6tables-legacy  # Switch from nf_tables to iptables
-      when: not ansible_facts['architecture'] == "x86_64"
+      when: not hostvars.gateway.host_os == "ubuntu"
 
     - name: Activate NAT
       command: "{{ item }}"

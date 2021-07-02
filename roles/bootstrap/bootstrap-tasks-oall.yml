@@ -65,4 +65,4 @@
       notify: reboot
 
   become: true
-  when: ansible_facts['architecture'] != "x86_64"  # Raspberry Pi gateway only
+  when: hostvars.gateway.host_os != "ubuntu"  # Raspberry Pi gateway only

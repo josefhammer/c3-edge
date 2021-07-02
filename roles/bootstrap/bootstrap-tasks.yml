@@ -19,7 +19,7 @@
           shell: netplan apply
           
       become: true
-      when: ansible_facts['architecture'] == "x86_64"  # Ubuntu only; Raspberry Pi gateway has IP hardcoded in cmdline.txt
+      when: hostvars.gateway.host_os == "ubuntu"  # Ubuntu only; Raspberry Pi gateway has IP hardcoded in cmdline.txt
 
     - name: Include VLAN setup for gateway
       include_tasks: "bootstrap-tasks-vlan.yml"
@@ -117,7 +117,7 @@
       static ip_address={{ hostvars.gateway.int_cidr if (hostvars.gateway.nic_int == hostvars.gateway.ifnodes) else '0.0.0.0' }}
   notify: reboot
   become: true
-  when: inventory_hostname == 'gateway' and not ansible_facts['architecture'] == "x86_64"
+  when: inventory_hostname == 'gateway' and not hostvars.gateway.host_os == "ubuntu"
 
 - name: Set static IP address (RPi nodes)  # using /etc/dhcpcd.exit-hook caused issues with Docker 
   blockinfile:

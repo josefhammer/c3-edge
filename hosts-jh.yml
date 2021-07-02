@@ -12,6 +12,7 @@ all:
                     ifnodes: eth0  # o-all  # interface to access the nodes
                     k3s_cidr: 10.41.0.0/16
                     int_cidr: "{{ ansible_host }}/24"
+                    host_os: raspberrypi
 
         nodes:
             hosts:
