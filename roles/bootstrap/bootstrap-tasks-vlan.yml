@@ -19,27 +19,6 @@
         name: 8021q
         state: present
 
-    # Gateway: Install Linux VLAN devices (if gateway.usevlan)
-    - block:
-        - name: Add eth0.x device # sudo vconfig add eth0.x 
-          lineinfile:
-            path: /etc/network/interfaces.d/vlans
-            regexp: '^auto {{ hostvars.gateway.nic_int }}.{{ hostvars[item].ansible_host.split(".")[3] }}'
-            line: auto {{ hostvars.gateway.nic_int }}.{{ hostvars[item].ansible_host.split('.')[3] }}
-            state: "{{ vlanif }}"
-            create: true
-          loop: '{{ query("inventory_hostnames", "nodes:jetsons") }}'
-
-        - name: Configure eth0.x device
-          lineinfile:
-            path: /etc/network/interfaces.d/vlans
-            regexp: '^iface {{ hostvars.gateway.nic_int }}.{{ hostvars[item].ansible_host.split(".")[3] }}'
-            line: "iface {{ hostvars.gateway.nic_int }}.{{ hostvars[item].ansible_host.split('.')[3] }} inet manual"
-            state: "{{ vlanif }}"
-            create: true
-          loop: '{{ query("inventory_hostnames", "nodes:jetsons") }}'
-      
-      when: inventory_hostname == "gateway" and ansible_facts['architecture'] != "x86_64"  # for Ubuntu gateway see netplan template
 
     # Jetsons: As soon as we install the eth0.x VLAN device, DHCP won't work anymore out of the box
     #          --> we have to configure that first
@@ -63,8 +42,33 @@
       when: "'jetsons' in group_names"
 
     # Nodes/Jetsons: Install Linux VLAN devices (if gateway.usevlan)
-    - block:
-        - name: Add eth0.x device # sudo vconfig add eth0.x 
+    #
+    - block:  # Install on gateway
+        - name: Add eth0.x device (gateway) # sudo vconfig add eth0.x 
+          lineinfile:
+            path: /etc/network/interfaces.d/vlans
+            regexp: '^auto {{ hostvars.gateway.nic_int }}.{{ ansible_host.split(".")[3] }}'
+            line: auto {{ hostvars.gateway.nic_int }}.{{ ansible_host.split('.')[3] }}
+            state: "{{ vlanif }}"
+            create: true
+          delegate_to: 127.0.0.1
+          throttle: 1  # avoid race condition: run for one machine in parallel only
+
+        - name: Configure eth0.x device (gateway)
+          lineinfile:
+            path: /etc/network/interfaces.d/vlans
+            regexp: '^iface {{ hostvars.gateway.nic_int }}.{{ ansible_host.split(".")[3] }}'
+            line: "iface {{ hostvars.gateway.nic_int }}.{{ ansible_host.split('.')[3] }} inet manual"
+            state: "{{ vlanif }}"
+            create: true
+          delegate_to: 127.0.0.1
+          throttle: 1  # avoid race condition: run for one machine in parallel only
+      
+      when: inventory_hostname != "gateway" and hostvars.gateway.host_os != "ubuntu"  # for Ubuntu gateway see netplan template
+    #
+    #
+    - block:  # Install on node
+        - name: Add eth0.x device (node) # sudo vconfig add eth0.x 
           lineinfile:
             path: /etc/network/interfaces.d/vlans
             regexp: '^auto eth0.{{ ansible_host.split(".")[3] }}'
@@ -72,7 +76,7 @@
             state: "{{ vlanif }}"
             create: true
 
-        - name: Configure eth0.x device
+        - name: Configure eth0.x device (node)
           lineinfile:
             path: /etc/network/interfaces.d/vlans
             regexp: '^iface eth0.{{ ansible_host.split(".")[3] }}'
