@@ -1,0 +1,6 @@
+---
+- name: Clone Pox repo and checkout eel branch
+  ansible.builtin.git:
+    repo: http://github.com/noxrepo/pox
+    dest: ../pox    
+    version: eel
