@@ -1,0 +1,10 @@
+---
+# Configure OVS-Emu Bridge
+#
+- name: Setup emulation
+  include_tasks: "roles/{{ role_name }}/{{ role_name }}-tasks-setup.yml"
+  when: not emu_cleanup is defined
+
+- name: Cleanup emulation  # NOTE: The best choice would be to reboot the nodes.
+  include_tasks: "roles/{{ role_name }}/{{ role_name }}-tasks-cleanup.yml"
+  when: emu_cleanup is defined

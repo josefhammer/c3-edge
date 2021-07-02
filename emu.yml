@@ -1,0 +1,49 @@
+---
+- hosts: gateway,nodes,jetsons
+  roles: 
+    - role: emu
+      vars:
+        emu_public_gateway: cloudgw
+        emu:
+          hosts:
+            mobile1:
+                ip: 1.100/16
+                node: node1
+            mobile2: 
+                ip: 1.200/16
+                node: node2
+            edge1: 
+                ip: 2.100/16
+                node: node22
+            edge2: 
+                ip: 2.200/16
+                node: node23
+            cloud: 
+                ip: 3.100/16
+                node: jetson1
+
+
+          switches:
+            bs1:
+                dpid: 1
+                ctrl: tcp:127.0.0.1:6633
+            bs2:
+                dpid: 2
+                ctrl: tcp:127.0.0.1:6633
+            cloudgw:
+                dpid: 3
+
+
+          links:
+            - src: bs1
+              dest: mobile1
+            - src: bs2
+              dest: mobile2
+            - src: bs1
+              dest: edge1
+            - src: bs2
+              dest: edge2
+            - src: bs1
+              dest: cloudgw
+            - src: bs2
+              dest: cloudgw

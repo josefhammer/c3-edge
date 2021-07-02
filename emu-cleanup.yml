@@ -1,0 +1,6 @@
+---
+- hosts: gateway,nodes,jetsons
+  roles: 
+    - role: emu
+      vars:
+        emu_cleanup: true
