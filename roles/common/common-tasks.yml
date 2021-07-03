@@ -30,6 +30,7 @@
       - nmap
       - python3-pip
       - python-setuptools
+      - dnsutils
     state: present
   become: true
 
