@@ -1,0 +1,4 @@
+---
+- hosts: k3s_single
+  roles: 
+    - role: k3s-single

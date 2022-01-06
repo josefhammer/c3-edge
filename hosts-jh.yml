@@ -24,6 +24,14 @@ all:
                 ansible_pass: raspberry
                 ansible_host: "10.42.0.1{{ '%02d'|format(inventory_hostname.split('node')[1]|int) }}"
                 int_cidr: "{{ ansible_host }}/24"
+                emu_k3s_cidr: "10.1.1{{ '%02d'|format(inventory_hostname.split('node')[1]|int) }}.0/24"
+                emu_k3s_service_cidr: "10.0.1{{ '%02d'|format(inventory_hostname.split('node')[1]|int) }}.0/24"
+            
+            children:
+                k3s_single:
+                    hosts: 
+                        node22:
+                        node23:
 
         jetsons:
             hosts:
