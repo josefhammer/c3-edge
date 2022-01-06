@@ -32,6 +32,7 @@
       - python-setuptools
       - dnsutils
       - arp-scan
+      - curl                           # K3s installation fails without (https://github.com/k3s-io/k3s/issues/2814)
     state: present
   become: true
 

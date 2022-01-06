@@ -1,11 +1,4 @@
 ---
-- name: Install curl  # installation fails without (https://github.com/k3s-io/k3s/issues/2814)
-  apt:
-    pkg:
-      - curl
-    state: present
-  become: true
-
 - name: Check if already present
   command: which k3s
   failed_when: false
