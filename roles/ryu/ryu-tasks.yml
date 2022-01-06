@@ -1,0 +1,20 @@
+---
+- name: Install Ryu prerequisites
+  apt:  
+    pkg:
+      - gcc 
+      - python-dev 
+      - libffi-dev 
+      - libssl-dev 
+      - libxml2-dev 
+      - libxslt1-dev 
+      - zlib1g-dev
+    state: present
+  become: true
+
+- name: Install Ryu
+  pip:
+    name: 
+      - ryu
+      - eventlet==0.30.2  # https://github.com/eventlet/eventlet/issues/702
+  become: true
