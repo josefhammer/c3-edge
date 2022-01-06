@@ -11,7 +11,7 @@ all:
                     ntp: 143.205.64.56 143.205.64.57
                     usevlan: true  # install VLAN interfaces
                     ifnodes: "{{ nic_int }}"  # interface to access the nodes
-                    k3s_cidr: 10.41.0.0/16
+                    k3s_cidr: 10.41.0.0/16  # cluster-cidr
                     int_cidr: "{{ ansible_host }}/24"
                     host_os: ubuntu
 

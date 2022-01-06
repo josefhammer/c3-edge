@@ -1,4 +1,8 @@
 ---
+- name: Initialize emulation
+  include_tasks: "../emu/emu-tasks-init.yml"
+
+
 # Configure OVS-Emu Bridge
 #
 - block:
@@ -6,6 +10,9 @@
       shell: for bridge in `sudo ovs-vsctl list-br`; do if [ "$bridge" != o-all ]; then sudo ovs-vsctl del-br $bridge; fi; done
       become: true
 
+    # Note: Locally administered MAC addresses follow this pattern: x2‑xx‑xx‑xx‑xx‑xx
+    # See:  https://en.wikipedia.org/wiki/MAC_address#Universal_addresses_that_are_administered_locally
+    #
     - name: Create OVS Bridge  # sudo ovs-vsctl add-br {bridge}  # permanent
       openvswitch_bridge:
         bridge: "o-{{ item.key }}"
@@ -14,6 +21,7 @@
         # fail_mode=standalone: OVS will use default switching rules when no controller is connected
         #
         fail_mode: "{{ 'secure' if item.value.ctrl is defined else 'standalone' }}"
+        set: "bridge o-{{ item.key }} other-config:hwaddr=\"02:00:00:00:00:{{ '%02d'| format(item.value.dpid) }}\""
       loop: '{{ emu.switches | dict2items }}'
 
     - name: Set controller  # sudo ovs-vsctl set-controller {bridge} tcp:127.0.0.1:6633  # permanent
@@ -50,6 +58,29 @@
     - name: Set IP address on public gateway  # sudo ip addr add 10.0.0.0/16 dev o-gw
       command: "ip addr add 10.0.0.1/16 dev o-{{ emu_public_gateway }}"
 
+    - name: Start public gateway interface
+      command: "ip link set o-{{ emu_public_gateway }} up"
+
+  become: true
+  when: inventory_hostname == "gateway"
+
+
+- block:
+    - name: Remove all IP addresses from emu interface
+      command: "ip addr flush dev eth0.{{ ansible_host.split('.')[3] }}"
+
+    - name: Set IP address on node  # sudo ip addr add 10.0.x.x/16 dev eth0.x
+      command: "ip addr add {{ emu_ip }} dev eth0.{{ ansible_host.split('.')[3] }}"
+
+    - name: Set MAC addresses of virtual nodes
+      command: "ip link set eth0.{{ ansible_host.split('.')[3] }} address {{ emu_mac }}"
+      # command: "ip link set eth0.{{ ansible_host.split('.')[3] }} address 02:00:00:00:{{ '%02d' | format(int(emu.hosts[item.key].ip.split('.')[0])) }}:{{ '%02x' | format(int(emu.hosts[item.key].ip.split('.')[1])) }}"
+
+
+    - name: Add emu gateway  # sudo ip route replace default via 10.0.0.1 dev eth0.x
+      # remove again: sudo ip route del default via 10.0.0.1 dev eth0.x
+      command: "ip route replace default via 10.0.0.1 dev eth0.{{ ansible_host.split('.')[3] }}"
+
     # Dropping the default route does not work -- gets re-added by dhcpcd
     # sudo ip route del default via 10.42.0.1 dev eth0
     #
@@ -59,27 +90,9 @@
       #
       # delete on Ubuntu: sudo iptables -D FORWARD -i enp6s0 -o enp5s0 -j DROP
       #
-      shell: iptables -I FORWARD -i {{ hostvars['gateway']['ifnodes'] }} -o {{ hostvars['gateway']['nic_ext'] }} -j DROP
-  
-  become: true
-  when: inventory_hostname == "gateway"
-
-- block:
-    - name: Remove all IP addresses from emu interface
-      command: "ip addr flush dev eth0.{{ ansible_host.split('.')[3] }}"
-
-    - name: Set IP address on node  # sudo ip addr add 10.0.x.x/16 dev eth0.x
-      command: "ip addr add 10.0.{{ emu.hosts[item.key].ip }} dev eth0.{{ ansible_host.split('.')[3] }}"
-      when: emu.hosts[item.key].node == ansible_hostname
-      loop: '{{ emu.hosts | dict2items }}'
-
-    - name: Add emu gateway  # sudo ip route replace default via 10.0.0.1 dev eth0.x
-      # remove again: sudo ip route del default via 10.0.0.1 dev eth0.x
-      command: "ip route replace default via 10.0.0.1 dev eth0.{{ ansible_host.split('.')[3] }}"
-      when: emu.hosts[item.key].node == ansible_hostname
-      loop: '{{ emu.hosts | dict2items }}'
-
-      # NOTE: The default route via eth0 is blocked on the gateway
+      # https://unix.stackexchange.com/questions/109459/is-it-better-to-set-j-reject-or-j-drop-in-iptables
+      shell: iptables -I FORWARD -s {{ ansible_host }} -i {{ hostvars['gateway']['ifnodes'] }} -o {{ hostvars['gateway']['nic_ext'] }} -j REJECT # DROP
+      delegate_to: 127.0.0.1
 
   become: true
   when: not inventory_hostname == "gateway"
@@ -92,25 +105,21 @@
         regexp: '^source .emu_vars'
         line: "source .emu_vars"
         state: present
-      when: emu.hosts[item.key].node == ansible_hostname
-      loop: '{{ emu.hosts | dict2items }}'
 
     - name: Export local emu info (2/2)
       blockinfile:            
         path: /home/{{ hostvars[inventory_hostname].ansible_user }}/.emu_vars
         marker: "# {mark} EMULATION NODE"
         block: |
-          export EMU_NAME={{ item.key }}
-          export EMU_IP=10.0.{{ emu.hosts[item.key].ip.split('/')[0] }}
+          export EMU_NAME={{ emu_name }}
+          export EMU_IP={{ emu_ip.split('/')[0] }}
         state: present
         create: yes
-      when: emu.hosts[item.key].node == ansible_hostname
-      loop: '{{ emu.hosts | dict2items }}'
 
   when: not inventory_hostname == "gateway"
 
 
-- name: Set all emu host names
+- name: Set all emu host names (on nodes)
   blockinfile:            
     path: /etc/hosts
     marker: "# {mark} EMULATION NODES"
@@ -120,3 +129,19 @@
       {% endfor %}
     state: present
   become: true
+  when: not inventory_hostname == "gateway"
+
+
+- name: Set all emu host names (real IPs on gateway)
+  blockinfile:            
+    path: /etc/hosts
+    marker: "# {mark} EMULATION NODES"
+    block: |
+      {% for host in emu.hosts %}
+          {{ hostvars[emu.hosts[host].node].ansible_host }} {{ host }}
+      {% endfor %}
+    state: present
+  become: true
+  when: inventory_hostname == "gateway"
+
+
