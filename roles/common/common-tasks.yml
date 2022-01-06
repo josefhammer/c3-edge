@@ -31,6 +31,7 @@
       - python3-pip
       - python-setuptools
       - dnsutils
+      - arp-scan
     state: present
   become: true
 
