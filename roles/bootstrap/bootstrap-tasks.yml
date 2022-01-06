@@ -53,7 +53,7 @@
   run_once: true
   delegate_to: 127.0.0.1
 
-- name: Remove possible offending previous SSH keys from localhost
+- name: Remove possibly offending previous SSH keys from localhost
   shell: ssh-keygen -f "/home/{{ hostvars.gateway.ansible_user }}/.ssh/known_hosts" -R "{{ ansible_host }}"
   become: false
   delegate_to: 127.0.0.1
@@ -175,6 +175,10 @@
     line: LC_TIME=
     state: present
     create: yes
+
+- name: Set gateway for the following tasks (apt, timesync -- until reboot)  
+  command: "ip route replace default via {{ hostvars['gateway'].ansible_host }} dev eth0"
+  become: true
 
 - name: Force time sync  # we need the correct time for apt
   systemd:
