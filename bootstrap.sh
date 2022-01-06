@@ -22,5 +22,5 @@ if [ ! -s hosts.yml ]; then
 fi
 
 # Run Bootstrap Playbooks
-ansible-playbook --timeout 30 bootstrap.yml   # higher timeout due to changes to hostname ("Timeout (12s) waiting for privilege escalation prompt")
+ansible-playbook --timeout 30 bootstrap.yml "$@"  # higher timeout due to changes to hostname ("Timeout (12s) waiting for privilege escalation prompt")
 popd
