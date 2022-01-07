@@ -72,10 +72,11 @@
     # NOTE: TC rules are deleted automatically when the veth devices are deleted
     #
     # Manual deletion: sudo tc qdisc del dev v-bs1-cloudgw root
+    # See applied rules: sudo tc -s qdisc ls dev v-bs1-cloudgw
     #
-    - name: Set latency
+    - name: Set latency (switch -> switch)
       command: tc qdisc add dev v-{{ item.src }}-{{ item.dest }} root handle 1:1 netem delay {{ item.delay }}
-      when: item.src in emu.switches and item.dest in emu.switches
+      when: item.delay is defined and (item.src in emu.switches and item.dest in emu.switches)
       loop: "{{ emu.links }}"
 
 
@@ -120,7 +121,6 @@
       command: "ip link set eth0.{{ ansible_host.split('.')[3] }} address {{ emu_mac }}"
       # command: "ip link set eth0.{{ ansible_host.split('.')[3] }} address 02:00:00:00:{{ '%02d' | format(int(emu.hosts[item.key].ip.split('.')[0])) }}:{{ '%02x' | format(int(emu.hosts[item.key].ip.split('.')[1])) }}"
 
-
     - name: Add emu gateway  # sudo ip route replace default via 10.0.0.1 dev eth0.x
       # remove again: sudo ip route del default via 10.0.0.1 dev eth0.x
       command: "ip route replace default via 10.0.0.1 dev eth0.{{ ansible_host.split('.')[3] }}"
@@ -137,6 +137,11 @@
       # https://unix.stackexchange.com/questions/109459/is-it-better-to-set-j-reject-or-j-drop-in-iptables
       shell: iptables -I FORWARD -s {{ ansible_host }} -i {{ hostvars['gateway']['ifnodes'] }} -o {{ hostvars['gateway']['nic_ext'] }} -j REJECT # DROP
       delegate_to: 127.0.0.1
+
+    - name: Set latency (node -> switch)
+      command: tc qdisc add dev eth0.{{ ansible_host.split('.')[3] }} root handle 1:1 netem delay {{ item.delay }}
+      when: item.delay is defined and (emu_name == item.src or emu_name == item.dest)
+      loop: "{{ emu.links }}"
 
   become: true
   when: not inventory_hostname == "gateway"

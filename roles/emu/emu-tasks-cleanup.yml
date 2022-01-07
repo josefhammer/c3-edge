@@ -33,6 +33,13 @@
         - result.rc != 0
         - '"No chain/target/match by that name." not in result.stderr'
       delegate_to: 127.0.0.1
+
+    - name: Remove network latency
+      command: tc qdisc del dev eth0.{{ ansible_host.split('.')[3] }} root
+      register: result
+      failed_when:
+        - result.rc != 0
+        - '"RTNETLINK answers: No such file or directory" not in result.stderr and "Cannot delete qdisc with handle of zero." not in result.stderr'
   
   become: true
   when: not inventory_hostname == "gateway"

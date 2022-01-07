@@ -42,6 +42,7 @@ emu:
       dest: mobile2
     - src: bs1
       dest: edge1
+      delay: 5ms
     - src: bs2
       dest: edge2
     - src: bs1
