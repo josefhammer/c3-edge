@@ -1,8 +1,4 @@
 ---
-- name: Initialize emulation
-  include_tasks: "../emu/emu-tasks-init.yml"
-
-
 # Configure OVS-Emu Bridge
 #
 - block:
@@ -37,23 +33,71 @@
       when: item.src in emu.switches and item.dest in emu.hosts
       loop: "{{ emu.links }}"
 
-    - name: Add patch ports between bridges  
+
+
+    # Create veth devices (using `tc` seems not to be possible with OVS patch ports)
+    #
+    - name: Create veth devices  # sudo ip link add veth0 type veth peer name veth1
+      command: "ip link add v-{{ item.src }}-{{ item.dest }} type veth peer name v-{{ item.dest }}-{{ item.src }}"
+      when: item.src in emu.switches and item.dest in emu.switches
+      loop: "{{ emu.links }}"
+
+    - name: Bring veth devices up (source)
+      command: "ip link set v-{{ item.src }}-{{ item.dest }} up"
+      when: item.src in emu.switches and item.dest in emu.switches
+      loop: "{{ emu.links }}"
+
+    - name: Bring veth devices up (dest)
+      command: "ip link set v-{{ item.dest }}-{{ item.src }} up"
+      when: item.src in emu.switches and item.dest in emu.switches
+      loop: "{{ emu.links }}"
+
+    - name: Add ports between bridges (source)
       openvswitch_port:
         bridge: "o-{{ item.src }}"
-        port: "{{ item.src }}-{{ item.dest }}"
-        set: "interface {{ item.src }}-{{ item.dest }} type=patch options:peer={{ item.dest }}-{{ item.src }}"
+        port: "v-{{ item.src }}-{{ item.dest }}"
         state: present
       when: item.src in emu.switches and item.dest in emu.switches
       loop: "{{ emu.links }}"
 
-    - name: Add patch ports between bridges (reverse)
+    - name: Add ports between bridges (dest)
       openvswitch_port:
         bridge: "o-{{ item.dest }}"
-        port: "{{ item.dest }}-{{ item.src }}"
-        set: "interface {{ item.dest }}-{{ item.src }} type=patch options:peer={{ item.src }}-{{ item.dest }}"
+        port: "v-{{ item.dest }}-{{ item.src }}"
         state: present
       when: item.src in emu.switches and item.dest in emu.switches
       loop: "{{ emu.links }}"
+
+
+    # NOTE: TC rules are deleted automatically when the veth devices are deleted
+    #
+    # Manual deletion: sudo tc qdisc del dev v-bs1-cloudgw root
+    #
+    - name: Set latency
+      command: tc qdisc add dev v-{{ item.src }}-{{ item.dest }} root handle 1:1 netem delay {{ item.delay }}
+      when: item.src in emu.switches and item.dest in emu.switches
+      loop: "{{ emu.links }}"
+
+
+    # Alternative: OVS patch ports between the switches
+    #
+    # - name: Add patch ports between bridges  
+    #   openvswitch_port:
+    #     bridge: "o-{{ item.src }}"
+    #     port: "{{ item.src }}-{{ item.dest }}"
+    #     set: "interface {{ item.src }}-{{ item.dest }} type=patch options:peer={{ item.dest }}-{{ item.src }}"
+    #     state: present
+    #   when: item.src in emu.switches and item.dest in emu.switches
+    #   loop: "{{ emu.links }}"
+    #
+    # - name: Add patch ports between bridges (reverse)
+    #   openvswitch_port:
+    #     bridge: "o-{{ item.dest }}"
+    #     port: "{{ item.dest }}-{{ item.src }}"
+    #     set: "interface {{ item.dest }}-{{ item.src }} type=patch options:peer={{ item.src }}-{{ item.dest }}"
+    #     state: present
+    #   when: item.src in emu.switches and item.dest in emu.switches
+    #   loop: "{{ emu.links }}"
 
     - name: Set IP address on public gateway  # sudo ip addr add 10.0.0.0/16 dev o-gw
       command: "ip addr add 10.0.0.1/16 dev o-{{ emu_public_gateway }}"

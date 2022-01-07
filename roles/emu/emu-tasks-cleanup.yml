@@ -6,6 +6,14 @@
       shell: for bridge in `sudo ovs-vsctl list-br`; do if [ "$bridge" != o-all ]; then sudo ovs-vsctl del-br $bridge; fi; done
       become: true
 
+    - name: Delete veth devices  # sudo ip link del vethX  # the peer will be deleted automatically
+      command: "ip link del v-{{ item.src }}-{{ item.dest }}"
+      register: result
+      failed_when:
+        - result.rc != 0
+        - '"Cannot find device " not in result.stderr'      
+      when: item.src in emu.switches and item.dest in emu.switches
+      loop: "{{ emu.links }}"
 
   become: true
   when: inventory_hostname == "gateway"
@@ -20,6 +28,10 @@
 
     - name: Unblock default gateway for nodes (via eth0)  
       shell: iptables -D FORWARD -s {{ ansible_host }} -i {{ hostvars['gateway']['ifnodes'] }} -o {{ hostvars['gateway']['nic_ext'] }} -j REJECT
+      register: result
+      failed_when:
+        - result.rc != 0
+        - '"No chain/target/match by that name." not in result.stderr'
       delegate_to: 127.0.0.1
   
   become: true

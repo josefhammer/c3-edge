@@ -46,7 +46,9 @@ emu:
       dest: edge2
     - src: bs1
       dest: cloudgw
+      delay: 20ms
     - src: bs2
       dest: cloudgw
+      delay: 20ms
     - src: cloudgw
       dest: cloud
