@@ -1,0 +1,28 @@
+---
+# NOTE: Requires emulation vars to be initialized!
+
+- name: Define local vars  # without a separate file
+  set_fact:
+    edgeFolder: /home/pi/edge
+    webHome: /home/pi/edge/webhome
+
+- name: Create edge folders
+  file: 
+    path: "{{ webHome }}"
+    state: directory
+
+- name: Write index.html for Nginx
+  template:
+    src: index.html.j2
+    dest: "{{ webHome }}/index.html"
+    mode: '0644'
+
+- name: Deploy Nginx service configuration for K8s
+  template:
+    src: edge-nginx.yml.j2
+    dest: "{{ edgeFolder }}/edge-nginx.yml"
+    mode: '0644'
+
+- name: Install Nginx K8s service
+  command: "kubectl apply -f {{ edgeFolder }}/edge-nginx.yml"
+

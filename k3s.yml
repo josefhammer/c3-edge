@@ -1,4 +1,6 @@
 ---
-- hosts: gateway,nodes:!k3s_single,jetsons
+- hosts: gateway,nodes,!k3s_single,jetsons
   roles: 
     - k3s
+  vars:
+    - cleanup: false

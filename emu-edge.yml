@@ -3,3 +3,5 @@
   roles: 
     - k3s-single
     - emu-edge
+  vars:
+    - cleanup: false

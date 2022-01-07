@@ -1,0 +1,15 @@
+---
+- name: Uninstall K3s (gateway)
+  command: /usr/local/bin/k3s-uninstall.sh
+  when: inventory_hostname == "gateway" and '/usr/local/bin/k3s-uninstall.sh' is file
+
+- name: Uninstall K3s (agents)
+  command: /usr/local/bin/k3s-agent-uninstall.sh
+  when: not inventory_hostname == "gateway" and '/usr/local/bin/k3s-agent-uninstall.sh' is file
+
+
+
+# uninstall from server: /usr/local/bin/k3s-uninstall.sh
+# uninstall from node:   /usr/local/bin/k3s-agent-uninstall.sh
+
+# uninstall from all nodes: ansible nodes:jetsons -a "/usr/local/bin/k3s-agent-uninstall.sh" --become

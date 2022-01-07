@@ -2,45 +2,10 @@
 - name: Initialize emulation
   include_tasks: "../emu/emu-tasks-init.yml"
 
-- name: Check if already present
-  command: which k3s
-  failed_when: false
-  changed_when: false
-  register: k3s_available
+- name: Include setup
+  include_tasks: "roles/{{ role_name }}/{{ role_name }}-tasks-setup.yml"
+  when: not cleanup 
 
-- block:
-    - name: Download install script
-      get_url:
-        url: https://get.k3s.io
-        dest: /tmp/get-k3s.sh
-        mode: u+x
-      when: k3s_available.rc == 1
-
-    - name: Run install script
-      shell: sh /tmp/get-k3s.sh - --write-kubeconfig-mode 644 # the node will be both a server and agent: see https://github.com/k3s-io/k3s/issues/1279#issuecomment-574332274
-      environment:
-        # --bind-address: see https://medium.com/@prasenjitsarkar_79320/k3s-cluster-on-raspberry-pi-gotchas-14f781e7bf6c
-        # --cluster-cidr: the default 10.42.x.x is already used for the regular node IPs
-        # both bind-address and node-external-ip seem to be required
-        INSTALL_K3S_EXEC: --bind-address "{{ emu_ip.split('/')[0] }}" --cluster-cidr "{{ hostvars[inventory_hostname].emu_k3s_cidr }}" --service-cidr "{{ hostvars[inventory_hostname].emu_k3s_service_cidr }}" --node-external-ip "{{ emu_ip.split('/')[0] }}"
-      become: true
-
-  when: k3s_available.rc == 1 and inventory_hostname != "gateway"  # != gateway to be safe
-
-- name: Remove install script
-  file:
-    path: /tmp/get-k3s.sh
-    state: absent
-
-- name: Set to auto-start  # Serves as a check that K3s is installed correctly
-  service:
-    name: k3s
-    state: started
-    enabled: true
-  become: true
-
-
-# uninstall from server: /usr/local/bin/k3s-uninstall.sh
-# uninstall from node:   /usr/local/bin/k3s-agent-uninstall.sh
-
-# uninstall from all nodes: ansible nodes:jetsons -a "/usr/local/bin/k3s-agent-uninstall.sh" --become
+- name: Include cleanup
+  include_tasks: "roles/{{ role_name }}/{{ role_name }}-tasks-cleanup.yml"
+  when: cleanup
