@@ -1,0 +1,24 @@
+all:
+    children:
+        gateways:
+            hosts:
+                gateway:
+                    ansible_user: edge
+                    nic_ext: enp5s0
+                    nic_int: enp6s0
+                    ntp: 143.205.64.56 143.205.64.57
+                    host_os: ubuntu
+
+        nodes:
+            hosts:
+                node[1:31]:
+            
+            children:
+                k3s_single:
+                    hosts: 
+                        node18:
+                        node19:
+
+        jetsons:
+            hosts:
+                jetson[1:5]:

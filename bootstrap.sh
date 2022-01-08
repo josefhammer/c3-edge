@@ -13,11 +13,11 @@ sudo pip3 install ansible
 pushd $DIR  # ansible.cfg is only read from the _current_ working directory
 
 # Set the right inventory file (symlink)
-if [ ! -s hosts.yml ]; then
+if [ ! -s inventory/hosts.yml ]; then
     if [ `uname -m` == 'x86_64' ]; then
-        ln -sf hosts-aau.yml hosts.yml
+        ln -sf hosts-aau.yml inventory/hosts.yml  # no path for source since it's in the same folder
     else
-        ln -sf hosts-jh.yml hosts.yml
+        ln -sf hosts-jh.yml inventory/hosts.yml  # no path for source since it's in the same folder
     fi
 fi
 
