@@ -1,7 +1,5 @@
 ---
 - hosts: gateway,node16,node17,node18,node19,jetson4
   roles: 
-    - role: emu
-  vars:
-    - cleanup: false
-
+    - emu-cfg-edge
+    - emu

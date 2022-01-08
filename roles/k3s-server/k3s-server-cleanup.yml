@@ -1,0 +1,9 @@
+---
+# /usr/local/bin/k3s-uninstall.sh
+#
+- name: Uninstall K3s server
+  command: /usr/local/bin/k3s-uninstall.sh
+  register: result
+  failed_when:
+    - result.rc != 0
+    - '"No such file or directory" not in result.msg'

@@ -1,0 +1,11 @@
+---
+# /usr/local/bin/k3s-uninstall.sh
+#
+# uninstall from all nodes: ansible nodes:jetsons -a "/usr/local/bin/k3s-agent-uninstall.sh" --become
+#
+- name: Uninstall K3s agent
+  command: /usr/local/bin/k3s-agent-uninstall.sh
+  register: result
+  failed_when:
+    - result.rc != 0
+    - '"No such file or directory" not in result.msg'

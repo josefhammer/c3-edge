@@ -1,0 +1,43 @@
+---
+- name: Check if config var is defined
+  fail:
+  when: k3s is not defined
+
+- name: Check if already present
+  command: which k3s
+  failed_when: false
+  changed_when: false
+  register: k3s_available
+
+- name: Download install script
+  get_url:
+    url: https://get.k3s.io
+    dest: /tmp/get-k3s.sh
+    mode: u+x
+  when: k3s_available.rc == 1
+
+- name: Run install script (server)
+  shell: sh /tmp/get-k3s.sh - --write-kubeconfig-mode 644 # the node will be both a server and agent: see https://github.com/k3s-io/k3s/issues/1279#issuecomment-574332274
+  environment:
+    # --bind-address: see https://medium.com/@prasenjitsarkar_79320/k3s-cluster-on-raspberry-pi-gotchas-14f781e7bf6c
+    # --cluster-cidr: the default 10.42.x.x is already used for the regular node IPs
+    INSTALL_K3S_EXEC: >-
+        --bind-address "{{ k3s.bind_address }}" 
+        --cluster-cidr "{{ k3s.cluster_cidr }}"
+        --service-cidr "{{ k3s.service_cidr }}" 
+        --node-external-ip "{{ k3s.bind_address }}" 
+        "{{ '--flannel-iface "{{ hostvars[inventory_hostname].ifnodes }}"' if hostvars[inventory_hostname].ifnodes is defined else '' }}"
+  when: k3s_available.rc == 1
+  become: true
+
+- name: Remove install script
+  file:
+    path: /tmp/get-k3s.sh
+    state: absent
+
+- name: Set to auto-start (server)  # Serves as a check that K3s is installed correctly
+  service:
+    name: k3s
+    state: started
+    enabled: true
+  become: true

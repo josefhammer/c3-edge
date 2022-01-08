@@ -1,2 +1,8 @@
 ---
-- import_tasks: "../{{ role_name }}-tasks.yml"
+- name: Include setup
+  include_tasks: "{{ role_path }}/{{ role_name }}-setup.yml"
+  when: cleanup is not defined or not cleanup
+
+- name: Include cleanup
+  include_tasks: "{{ role_path }}/{{ role_name }}-cleanup.yml"
+  when: cleanup is defined and cleanup

@@ -1,8 +1,0 @@
----
-- name: Include setup
-  include_tasks: "roles/{{ role_name }}/{{ role_name }}-tasks-setup.yml"
-  when: not cleanup 
-
-- name: Include cleanup
-  include_tasks: "roles/{{ role_name }}/{{ role_name }}-tasks-cleanup.yml"
-  when: cleanup

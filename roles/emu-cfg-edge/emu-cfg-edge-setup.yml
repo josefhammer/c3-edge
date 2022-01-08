@@ -1,9 +1,7 @@
 ---
-# REVIEW c&p from emu-tasks-setup ... correct IP address is required
-#
 - name: Load variables
   include_vars:
-    file: ../../emu-config.yml
+    file: "{{ role_name }}-vars.yml"
 
 - name: Merge emu vars into host information
   set_fact: 
@@ -19,6 +17,7 @@
 
     - name: Set IP address on node  # sudo ip addr add 10.0.x.x/16 dev eth0.x
       command: "ip addr add {{ emu_ip }} dev eth0.{{ ansible_host.split('.')[3] }}"
+      when: cleanup is not defined or not cleanup
 
   become: true
   when: not inventory_hostname == "gateway"

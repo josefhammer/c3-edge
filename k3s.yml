@@ -1,6 +1,13 @@
 ---
-- hosts: gateway,nodes,!k3s_single,jetsons
-  roles: 
-    - k3s
+- hosts: gateway
+  roles:
+    - k3s-server
   vars:
-    - cleanup: false
+    - k3s:
+        bind_address: "{{ ansible_host }}"
+        cluster_cidr: "10.41.0.0/16"
+        service_cidr: "10.40.0.0/16"
+
+- hosts: nodes,!k3s_single,jetsons
+  roles:
+    - k3s-agent

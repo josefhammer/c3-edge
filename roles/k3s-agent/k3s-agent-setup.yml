@@ -1,0 +1,40 @@
+---
+- name: Check if already present
+  command: which k3s
+  failed_when: false
+  changed_when: false
+  register: k3s_available
+
+- name: Download install script
+  get_url:
+    url: https://get.k3s.io
+    dest: /tmp/get-k3s.sh
+    mode: u+x
+  when: k3s_available.rc == 1
+
+- name: Read K3S_TOKEN
+  slurp:
+    src: "/var/lib/rancher/k3s/server/node-token"
+  register: k3s_token
+  delegate_to: 127.0.0.1  # Currently, this works only with Gateway as the server (see 2022-01-08)
+  become: true
+
+- name: Run install script (agent)
+  shell: sh /tmp/get-k3s.sh
+  environment:
+    K3S_URL: https://{{ hostvars['gateway'].ansible_host }}:6443  # Server must be on the Gateway
+    K3S_TOKEN: "{{ k3s_token.content | b64decode | trim }}"
+  when: k3s_available.rc == 1
+  become: true
+
+- name: Remove install script
+  file:
+    path: /tmp/get-k3s.sh
+    state: absent
+
+- name: Set to auto-start (agent)  # Serves as a check that K3s is installed correctly
+  service:
+    name: k3s-agent
+    state: started
+    enabled: true
+  become: true
