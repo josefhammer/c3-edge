@@ -41,3 +41,30 @@
     state: started
     enabled: true
   become: true
+
+
+# Install Helm
+#
+# curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
+#
+- name: Check if Helm is already present
+  command: which helm
+  failed_when: false
+  changed_when: false
+  register: helm_available
+
+- name: Download Helm install script
+  get_url:
+    url: https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3
+    dest: /tmp/get_helm.sh
+    mode: u+x
+  when: helm_available.rc == 1
+
+- name: Install Helm
+  shell: bash /tmp/get_helm.sh  # contrary to the official documentation, 'sh' instead of 'bash' fails
+  when: helm_available.rc == 1
+
+- name: Remove Helm install script
+  file:
+    path: /tmp/get-helm.sh
+    state: absent
