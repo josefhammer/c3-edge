@@ -1,0 +1,74 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: edge-nginx
+spec:
+  selector:
+    matchLabels:
+      run: edge-nginx
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        run: edge-nginx
+    spec:
+      containers:
+      - name: nginx
+        image: nginx
+        ports:
+        - containerPort: 80
+        volumeMounts:
+          - mountPath: /usr/share/nginx/html
+            name: html
+
+      - image: bash
+        name: html-writer
+        volumeMounts:
+          - mountPath: /pod-data
+            name: html
+          - mountPath: {{ emuFolder }}
+            name: emu
+        command: ["/bin/sh"]
+        args:
+          - "-c"
+          - >
+            while true; do
+              source {{ emuFolder }}/emu_vars;
+              echo ""                                           >  /pod-data/index.html;
+              echo "$EMU_NAME @ $EMU_IP  ($MY_NODE @ $MY_HOST)" >> /pod-data/index.html;
+              echo ""                                           >> /pod-data/index.html;
+              sleep 1000;
+            done
+        env:
+        - name: MY_NODE
+          valueFrom:
+            fieldRef:
+              fieldPath: spec.nodeName
+        - name: MY_HOST
+          valueFrom:
+            fieldRef:
+              fieldPath: status.hostIP
+
+      volumes:
+      - name: html
+        emptyDir: {}
+      - name: emu
+        hostPath:
+          path: {{ emuFolder }}
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: edge-nginx
+  labels:
+    run: edge-nginx
+spec:
+  type: LoadBalancer
+  ports:
+  - port: 5000
+    targetPort: 80
+    protocol: TCP
+  selector:
+    run: edge-nginx
