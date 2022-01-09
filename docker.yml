@@ -1,7 +1,0 @@
----
-- hosts: gateway,nodes
-  roles: 
-    - docker
-
-    # WARNING: System MUST BE REBOOTED **before AND after ** !!
-

@@ -15,13 +15,18 @@
     name: systemd-timesyncd
   become: true
 
-- name: Update & upgrade all packages  # Run the equivalent of "apt-get update + upgrade" (unless done recently)
-  apt:
-    update_cache: yes
-    cache_valid_time: 36000
-    upgrade: dist
+- name: Apt update (--allow-releaseinfo-change)  # this option is not available in Ansible yet
+  command: apt-get update -y --allow-releaseinfo-change
   become: true
-  notify: reboot                       # Absolutely necessary _before_ the installation of Docker (will fail consistently otherwise!)             
+  notify: reboot
+
+# - name: Update & upgrade all packages  # Run the equivalent of "apt-get update + upgrade" (unless done recently)
+#   apt:
+#     update_cache: yes
+#     cache_valid_time: 36000
+#     upgrade: dist
+#   become: true
+#   notify: reboot                       # Absolutely necessary _before_ the installation of Docker (will fail consistently otherwise!)             
 
 - name: Install common tools
   apt:
