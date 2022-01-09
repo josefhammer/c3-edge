@@ -3,6 +3,19 @@
   include_vars:
     file: "{{ role_name }}-vars.yml"
 
+- name: Define emu folder  # without a separate file
+  set_fact:
+    emuFolder: /var/emu
+
+- name: Create emu folder
+  file:
+    path: "{{ emuFolder }}"
+    state: directory
+    mode: '0755'
+    owner: "{{ansible_user}}"
+    group: "{{ansible_user}}"
+  become: true
+
 - name: Merge emu vars into host information
   set_fact: 
     emu_name: "{{ item.key }}"
@@ -17,7 +30,6 @@
 
     - name: Set IP address on node  # sudo ip addr add 10.0.x.x/16 dev eth0.x
       command: "ip addr add {{ emu_ip }} dev eth0.{{ ansible_host.split('.')[3] }}"
-      when: cleanup is not defined or not cleanup
 
   become: true
   when: not inventory_hostname == "gateway"

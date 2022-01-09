@@ -3,23 +3,16 @@
 
 - name: Define local vars  # without a separate file
   set_fact:
-    edgeFolder: /home/pi/edge
-    webHome: /home/pi/edge/webhome
+    edgeFolder: "{{ emuFolder }}/services"
 
 - name: Create edge folders
   file: 
-    path: "{{ webHome }}"
+    path: "{{ edgeFolder }}"
     state: directory
-
-- name: Write index.html for Nginx
-  template:
-    src: index.html.j2
-    dest: "{{ webHome }}/index.html"
-    mode: '0644'
 
 - name: Deploy Nginx service configuration for K8s
   template:
-    src: edge-nginx.yml.j2
+    src: edge-nginx.yml
     dest: "{{ edgeFolder }}/edge-nginx.yml"
     mode: '0644'
 

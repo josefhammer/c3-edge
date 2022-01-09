@@ -151,13 +151,13 @@
     - name: Export local emu info (1/2)
       lineinfile:
         path: /home/{{ hostvars[inventory_hostname].ansible_user }}/.bashrc
-        regexp: '^source .emu_vars'
-        line: "source .emu_vars"
+        regexp: '^source .+emu_vars'
+        line: "source {{ emuFolder }}/emu_vars"
         state: present
 
     - name: Export local emu info (2/2)
       blockinfile:            
-        path: /home/{{ hostvars[inventory_hostname].ansible_user }}/.emu_vars
+        path: "{{ emuFolder }}/emu_vars"
         marker: "# {mark} EMULATION NODE"
         block: |
           export EMU_NAME={{ emu_name }}
