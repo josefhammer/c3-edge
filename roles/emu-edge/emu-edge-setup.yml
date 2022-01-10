@@ -10,12 +10,32 @@
     path: "{{ edgeFolder }}"
     state: directory
 
-- name: Deploy Nginx service configuration for K8s
+- name: Create K8s edge namespace
+  command: kubectl create namespace edge
+  register: result
+  failed_when:
+    - result.rc != 0
+    - '"(AlreadyExists)" not in result.stderr'
+
+- name: Set default K8s namespace
+  command: kubectl config set-context --current --namespace=edge
+  become: true
+
+- name: Copy Nginx service configuration for K8s
   template:
     src: edge-nginx.yml
     dest: "{{ edgeFolder }}/edge-nginx.yml"
     mode: '0644'
 
 - name: Install Nginx K8s service
-  command: "kubectl apply -f {{ edgeFolder }}/edge-nginx.yml"
+  command: "kubectl apply -f {{ edgeFolder }}/edge-nginx.yml --namespace=edge"
 
+- name: Fetch K8s service details
+  command: kubectl get svc -o json -n edge
+  register: result
+
+- name: Store K8s service details
+  copy:
+    content: "{{ result.stdout }}"
+    dest: "{{ emuFolder }}/{{ emu_ip.split('/')[0] }}-services.json"
+  delegate_to: 127.0.0.1

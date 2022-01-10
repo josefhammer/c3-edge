@@ -3,3 +3,6 @@
   file: 
     path: "{{ emuFolder }}/services"
     state: absent
+
+- name: Remove all pods and services from edge namespace
+  command: kubectl -n edge delete pod,svc --all
