@@ -194,3 +194,14 @@
   when: inventory_hostname == "gateway"
 
 
+- name: Configure SSH for simplified login
+  blockinfile:            
+    path: ~/.ssh/config
+    marker: "# {mark} EMULATION NODES"
+    block: |
+      {% for host in emu.hosts %}
+          Host {{ host }}
+              User {{ hostvars[emu.hosts[host].node].ansible_user }}
+      {% endfor %}
+    state: present
+  when: inventory_hostname == "gateway"
