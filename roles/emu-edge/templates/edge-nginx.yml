@@ -64,6 +64,8 @@ metadata:
   name: edge-nginx
   labels:
     run: edge-nginx
+  annotations:
+    edge.serviceDomain: "aau.at:80"
 spec:
   type: LoadBalancer
   ports:
