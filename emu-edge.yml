@@ -1,11 +1,5 @@
 ---
 - hosts: k3s_single
   roles:
-    - {role: 'emu-cfg-edge', tags: 'k3s, emu'}
-    - {role: 'k3s-server', tags: 'k3s'}
+    - {role: 'emu-cfg-edge', tags: 'emu'}
     - {role: 'emu-edge', tags: 'emu'}
-  vars:
-    - k3s:
-        bind_address: "{{ emu_ip.split('/')[0] }}"
-        cluster_cidr: "10.1.1{{ '%02d'|format(inventory_hostname.split('node')[1]|int) }}.0/24"
-        service_cidr: "10.0.1{{ '%02d'|format(inventory_hostname.split('node')[1]|int) }}.0/24"
