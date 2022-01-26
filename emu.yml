@@ -1,5 +1,5 @@
 ---
-- hosts: gateway,node16,node17,node18,node19,jetson4
+- hosts: emu1
   roles: 
     - emu-cfg-edge
     - emu

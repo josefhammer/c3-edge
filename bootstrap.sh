@@ -17,7 +17,7 @@ if [ ! -s inventory/hosts.yml ]; then
     if [ `uname -m` == 'x86_64' ]; then
         ln -sf hosts-aau.yml inventory/hosts.yml  # no path for source since it's in the same folder
     else
-        ln -sf hosts-jh.yml inventory/hosts.yml  # no path for source since it's in the same folder
+        ln -sf hosts-jh.yml inventory/hosts.yml  # NOTE: no path for source since it's in the same folder
     fi
 fi
 

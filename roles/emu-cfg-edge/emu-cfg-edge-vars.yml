@@ -4,23 +4,23 @@ emu:
   hosts:
     mobile1:
         ip: 1.100/16
-        node: node16 # node1
+        node: "{{ 'node16' if hostvars.gateway.isAAU else 'node1' }}"
         mac: 01:01
     mobile2: 
         ip: 1.200/16
-        node: node17 # node2
+        node: "{{ 'node17' if hostvars.gateway.isAAU else 'node2' }}"
         mac: 01:02
     edge1: 
         ip: 2.100/16
-        node: node18 # node22
+        node: "{{ 'node18' if hostvars.gateway.isAAU else 'node22' }}"
         mac: 02:01
     edge2: 
         ip: 2.200/16
-        node: node19 # node23
+        node: "{{ 'node19' if hostvars.gateway.isAAU else 'node23' }}"
         mac: 02:02
     cloud: 
         ip: 3.100/16
-        node: jetson4 # jetson1
+        node: "{{ 'jetson4' if hostvars.gateway.isAAU else 'jetson1' }}"
         mac: 03:01
 
 

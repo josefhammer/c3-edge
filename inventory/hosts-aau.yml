@@ -1,4 +1,7 @@
 all:
+    vars:
+        isAAU: true
+        
     children:
         gateways:
             hosts:
@@ -13,12 +16,19 @@ all:
             hosts:
                 node[1:31]:
             
-            children:
-                k3s_single:
-                    hosts: 
-                        node18:
-                        node19:
-
         jetsons:
             hosts:
                 jetson[1:5]:
+
+        k3s_single:
+            hosts: 
+                node18:
+                node19:
+
+        emu1:
+            hosts:
+                gateway:
+                node16:
+                node17:
+                node18:
+                jetson4:
