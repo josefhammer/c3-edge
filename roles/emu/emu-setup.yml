@@ -135,7 +135,7 @@
       # delete on Ubuntu: sudo iptables -D FORWARD -i enp6s0 -o enp5s0 -j DROP
       #
       # https://unix.stackexchange.com/questions/109459/is-it-better-to-set-j-reject-or-j-drop-in-iptables
-      shell: iptables -I FORWARD -s {{ ansible_host }} -i {{ hostvars['gateway']['ifnodes'] }} -o {{ hostvars['gateway']['nic_ext'] }} -j REJECT # DROP
+      shell: iptables -w 5 -I FORWARD -s {{ ansible_host }} -i {{ hostvars['gateway']['ifnodes'] }} -o {{ hostvars['gateway']['nic_ext'] }} -j REJECT # DROP
       delegate_to: 127.0.0.1
 
     - name: Set latency (node -> switch)
