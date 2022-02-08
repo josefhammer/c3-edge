@@ -17,4 +17,8 @@
     name: 
       - ryu
       - eventlet==0.30.2  # https://github.com/eventlet/eventlet/issues/702
-  become: true
+
+- name: Install libs for the EdgeController
+  pip:
+    name: 
+      - colorlog
