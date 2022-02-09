@@ -9,7 +9,6 @@
   apt:
     pkg: 
       - openvswitch-switch 
-      - openvswitch-testcontroller 
       - openvswitch-common
     state: present
     update_cache: yes
