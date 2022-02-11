@@ -27,7 +27,7 @@
       command: "ip route replace default via {{ hostvars['gateway'].ansible_host }} dev eth0"
 
     - name: Unblock default gateway for nodes (via eth0)  
-      shell: iptables -D FORWARD -s {{ ansible_host }} -i {{ hostvars['gateway']['ifnodes'] }} -o {{ hostvars['gateway']['nic_ext'] }} -j REJECT
+      shell: iptables -w 5 -D FORWARD -s {{ ansible_host }} -i {{ hostvars['gateway']['ifnodes'] }} -o {{ hostvars['gateway']['nic_ext'] }} -j REJECT
       register: result
       failed_when:
         - result.rc != 0
