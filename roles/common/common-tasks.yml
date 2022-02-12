@@ -15,6 +15,15 @@
     name: systemd-timesyncd
   become: true
 
+- name: Copy common tools in /files
+  copy:
+    src: ./
+    dest: /usr/local/bin/
+    owner: root
+    group: root
+    mode: '0755'
+  become: true
+
 - name: Apt update (--allow-releaseinfo-change)  # this option is not available in Ansible yet
   command: apt-get update -y --allow-releaseinfo-change
   become: true
