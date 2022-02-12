@@ -1,5 +1,5 @@
 ---
 - hosts: gateway,nodes,jetsons  # 'all' does not match localhost
   roles: 
-    - common
-    - docker
+    - {role: 'common', tags: 'common'}
+    - {role: 'docker', tags: 'docker'}
