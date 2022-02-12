@@ -1,4 +1,6 @@
 ---
+# NOTE: Needs to be run _before_ emulation is set up!
+#
 - hosts: k3s_single
   roles:
     - {role: 'emu-cfg-edge', tags: 'k3s'}
