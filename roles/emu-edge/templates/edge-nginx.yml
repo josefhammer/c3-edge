@@ -69,7 +69,7 @@ metadata:
   annotations:
     edge.serviceDomain: "aau.at:80"
 spec:
-  type: LoadBalancer
+  type: NodePort # LoadBalancer
   ports:
   - port: 5000
     targetPort: 80
