@@ -20,7 +20,7 @@ emu:
         mac: 02:02
     cloud: 
         ip: 3.100/16
-        node: "{{ 'jetson4' if hostvars.gateway.isAAU else 'jetson1' }}"
+        node: "{{ 'node15' if hostvars.gateway.isAAU else 'node3' }}"
         mac: 03:01
 
 
@@ -42,14 +42,13 @@ emu:
       dest: mobile2
     - src: bs1
       dest: edge1
-      delay: 5ms
     - src: bs2
       dest: edge2
+      delay: 5ms
     - src: bs1
       dest: cloudgw
-      delay: 20ms
     - src: bs2
       dest: cloudgw
-      delay: 20ms
+      delay: 10ms    # only on bs2 so we can test without delay on bs1
     - src: cloudgw
       dest: cloud

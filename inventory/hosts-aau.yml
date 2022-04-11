@@ -22,13 +22,15 @@ all:
 
         k3s_single:
             hosts: 
+                node15:
                 node18:
                 node19:
 
         emu1:
             hosts:
                 gateway:
+                node15:
                 node16:
                 node17:
                 node18:
-                jetson4:
+                node19:

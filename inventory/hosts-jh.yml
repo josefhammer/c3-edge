@@ -25,11 +25,13 @@ all:
             hosts: 
                 node22:
                 node23:
+                node3:
 
         emu1:
             hosts:
                 gateway:
                 node1:
+                node2:
                 node22:
                 node23:
-                jetson1:
+                node3:
