@@ -15,15 +15,6 @@
     name: systemd-timesyncd
   become: true
 
-- name: Copy common tools in /files
-  copy:
-    src: ./
-    dest: /usr/local/bin/
-    owner: root
-    group: root
-    mode: '0755'
-  become: true
-
 - name: Apt update (--allow-releaseinfo-change)  # this option is not available in Ansible yet
   command: apt-get update -y --allow-releaseinfo-change
   become: true
@@ -48,6 +39,13 @@
       - arp-scan
       - curl                           # K3s installation fails without (https://github.com/k3s-io/k3s/issues/2814)
     state: present
+  become: true
+
+- name: Install timecurl.sh
+  get_url:
+    url: https://raw.githubusercontent.com/josefhammer/timecurl/main/timecurl.sh
+    dest: /usr/local/bin/timecurl.sh
+    mode: '0755'
   become: true
 
 - meta: flush_handlers                 # Absolutely necessary _before_ the installation of Docker (will fail consistently otherwise!)
