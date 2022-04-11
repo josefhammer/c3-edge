@@ -2,3 +2,4 @@
 *.pyc
 .DS_Store
 /hosts.yml
+_snippets.yml
