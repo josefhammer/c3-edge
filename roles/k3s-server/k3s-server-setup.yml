@@ -51,6 +51,15 @@
     state: present
 
 
+- name: Install Kubernetes Python Client  # https://github.com/kubernetes-client/python
+  pip:
+    name: kubernetes
+    state: present
+    executable: "pip3"
+  delegate_to: 127.0.0.1
+  throttle: 1  # avoid race condition: run for one machine in parallel only
+
+
 # Install Helm
 #
 # curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
