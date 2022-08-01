@@ -29,13 +29,3 @@
 
 - name: Install Nginx K8s service
   command: "kubectl apply -f {{ edgeFolder }}/edge-nginx.yml --namespace=edge"
-
-- name: Fetch K8s service details
-  command: kubectl get svc -o json -n edge
-  register: result
-
-- name: Store K8s service details
-  copy:
-    content: "{{ result.stdout }}"
-    dest: "{{ emuFolder }}/{{ emu_ip.split('/')[0] }}-services.json"
-  delegate_to: 127.0.0.1
