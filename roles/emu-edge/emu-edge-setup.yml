@@ -23,9 +23,9 @@
 
 - name: Copy Nginx service configuration for K8s
   template:
-    src: edge-nginx.yml
-    dest: "{{ edgeFolder }}/edge-nginx.yml"
+    src: nginx-host-info.yml
+    dest: "{{ edgeFolder }}/nginx-host-info.yml"
     mode: '0644'
 
 - name: Install Nginx K8s service
-  command: "kubectl apply -f {{ edgeFolder }}/edge-nginx.yml --namespace=edge"
+  command: "kubectl apply -f {{ edgeFolder }}/nginx-host-info.yml --namespace=edge"
