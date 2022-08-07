@@ -10,6 +10,13 @@
     path: "{{ edgeFolder }}"
     state: directory
 
+- name: Create edge folders (on gateway)
+  file: 
+    path: "{{ edgeFolder }}"
+    state: directory
+  delegate_to: 127.0.0.1
+  run_once: true
+
 - name: Create K8s edge namespace
   command: kubectl create namespace edge
   register: result
@@ -21,11 +28,24 @@
   command: kubectl config set-context --current --namespace=edge
   become: true
 
-- name: Copy Nginx service configuration for K8s
+- name: Copy all K8s edge service configurations to gateway (for SDN Controller)
   template:
-    src: nginx-host-info.yml
-    dest: "{{ edgeFolder }}/nginx-host-info.yml"
+    src: "{{ item }}"
+    dest: "{{ edgeFolder }}/{{ item | basename }}"
     mode: '0644'
+  with_fileglob:
+    - templates/*.yml
+  delegate_to: 127.0.0.1
+  run_once: true
+  
+- name: Copy all K8s edge service configurations (for convenience)
+  template:
+    src: "{{ item }}"
+    dest: "{{ edgeFolder }}/{{ item | basename }}"
+    mode: '0644'
+  with_fileglob:
+    - templates/*.yml
 
-- name: Install Nginx K8s service
-  command: "kubectl apply -f {{ edgeFolder }}/nginx-host-info.yml --namespace=edge"
+
+# - name: Install Nginx K8s service
+#   command: "kubectl apply -f {{ edgeFolder }}/at.aau.nginx-host-info.yml --namespace=edge"

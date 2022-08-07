@@ -80,7 +80,7 @@
     - name: Store access token
       copy:
         content: "{{ result.stdout }}"
-        dest: "{{ emuFolder }}/{{ apiServer.stdout.split('//')[1] }}-k8s-cluster.json"
+        dest: "{{ emuFolder }}/{{ apiServer.stdout.split('//')[1] }}-k8s.json"
       delegate_to: 127.0.0.1
 
 

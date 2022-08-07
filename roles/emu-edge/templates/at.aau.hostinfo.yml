@@ -2,16 +2,16 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: nginx-host-info
+  name: hostinfo
 spec:
   selector:
     matchLabels:
-      at.aau.itec.edge: nginx-host-info
+      at.aau: hostinfo  # user defined
   replicas: 1
   template:
     metadata:
       labels:
-        at.aau.itec.edge: nginx-host-info
+        at.aau: hostinfo  # user defined
     spec:
       containers:
       - name: nginx
@@ -63,16 +63,12 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: nginx-host-info
-  labels:
-    at.aau.itec.edge: nginx-host-info
-  annotations:
-    edge.serviceDomain: "aau.at:80"
+  name: hostinfo
 spec:
   type: NodePort # LoadBalancer
   ports:
-  - port: 5000
+  - port: 80
     targetPort: 80
     protocol: TCP
   selector:
-    at.aau.itec.edge: nginx-host-info
+    at.aau: hostinfo  # user defined
