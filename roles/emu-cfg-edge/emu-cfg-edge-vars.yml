@@ -33,6 +33,7 @@ emu:
         ctrl: tcp:127.0.0.1:6653
     cloudgw:
         dpid: 3
+        ctrl: tcp:127.0.0.1:6653
 
 
   links:
