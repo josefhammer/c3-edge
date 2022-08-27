@@ -13,6 +13,8 @@ spec:
       labels:
         at.aau: hostinfo  # user defined
     spec:
+      nodeSelector:
+        node-role.kubernetes.io/master: '' # run on master only
       containers:
       - name: nginx
         image: nginx
