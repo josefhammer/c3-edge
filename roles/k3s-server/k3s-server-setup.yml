@@ -101,6 +101,8 @@
         namespace: edge
     EOF
 
+- name: Set K3s master label to the one used by K8s  # value is 'true' on K3s
+  command: kubectl label --overwrite node {{ inventory_hostname }} node-role.kubernetes.io/master='' 
 
 - name: Install Kubernetes Python Client  # https://github.com/kubernetes-client/python
   pip:
