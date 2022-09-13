@@ -29,8 +29,4 @@ all:
         emu1:
             hosts:
                 gateway:
-                node15:
-                node16:
-                node17:
-                node18:
-                node19:
+                node[11:21]:
