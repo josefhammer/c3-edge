@@ -30,7 +30,7 @@ emu:
         ctrl: tcp:127.0.0.1:6653 # old port: 6633 # default for OpenFlow: 6653
     bs2:
         dpid: 2
-        ctrl: tcp:127.0.0.1:6653
+        ctrl: tcp:127.0.0.1:6653 # multiple controllers may be set (separated by a space)
     cloudgw:
         dpid: 3
         ctrl: tcp:127.0.0.1:6653
