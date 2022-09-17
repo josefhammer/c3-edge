@@ -43,4 +43,4 @@
       command: "ip addr add {{ emu_ip }} dev eth0.{{ ansible_host.split('.')[3] }}"
 
   become: true
-  when: not inventory_hostname == "gateway"
+  when: (not inventory_hostname == "gateway") and (emu.ip is defined)

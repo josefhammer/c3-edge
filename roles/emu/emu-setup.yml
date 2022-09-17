@@ -154,7 +154,7 @@
       loop: "{{ emu.links }}"
 
   become: true
-  when: not inventory_hostname == "gateway"
+  when: (not inventory_hostname == "gateway") and (emu.ip is defined)
 
 
 - block:
@@ -175,7 +175,7 @@
         state: present
         create: yes
 
-  when: not inventory_hostname == "gateway"
+  when: (not inventory_hostname == "gateway") and (emu.ip is defined)
 
 
 - name: Set all emu host names (on nodes)
@@ -188,7 +188,7 @@
       {% endfor %}
     state: present
   become: true
-  when: not inventory_hostname == "gateway"
+  when: (not inventory_hostname == "gateway") and (emu.ip is defined)
 
 
 - name: Set all emu host names (real IPs on gateway)
