@@ -31,7 +31,7 @@
 - name: Merge emu vars into host information
   set_fact: 
     emu_name: "{{ item.key }}"
-    emu_ip: "10.0.{{ emu.hosts[item.key].ip }}"
+    emu_ip: "10.0.{{ '.'.join(emu.hosts[item.key].ip.split('.')[-2:]) }}"  # ignore first two octets if defined
   when: emu.hosts[item.key].node == ansible_hostname
   loop: '{{ emu.hosts | dict2items }}'
 
