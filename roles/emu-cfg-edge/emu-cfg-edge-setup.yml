@@ -32,7 +32,6 @@
   set_fact: 
     emu_name: "{{ item.key }}"
     emu_ip: "10.0.{{ emu.hosts[item.key].ip }}"
-    emu_mac: "02:00:00:00:{{ emu.hosts[item.key].mac }}"
   when: emu.hosts[item.key].node == ansible_hostname
   loop: '{{ emu.hosts | dict2items }}'
 

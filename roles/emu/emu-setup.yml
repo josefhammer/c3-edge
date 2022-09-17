@@ -117,9 +117,19 @@
     - name: Set IP address on node  # sudo ip addr add 10.0.x.x/16 dev eth0.x
       command: "ip addr add {{ emu_ip }} dev eth0.{{ ansible_host.split('.')[3] }}"
 
+    # MAC address: We use the IP address as the last 4 octets of the MAC address.
+    # Private MAC address starting with 02:, followed by ff for visual guidance ;).
+    #
+    - set_fact: 
+        emu_mac: "02:ff{% for i in emu_ip.split('/')[0].split('.') %}\
+                       {{ ':%02x' | format(i|int) }}\
+                       {% endfor %}"
+
+    - debug:
+        msg: "MAC address of {{ emu_ip }} = {{emu_mac}}"
+
     - name: Set MAC addresses of virtual nodes
       command: "ip link set eth0.{{ ansible_host.split('.')[3] }} address {{ emu_mac }}"
-      # command: "ip link set eth0.{{ ansible_host.split('.')[3] }} address 02:00:00:00:{{ '%02d' | format(int(emu.hosts[item.key].ip.split('.')[0])) }}:{{ '%02x' | format(int(emu.hosts[item.key].ip.split('.')[1])) }}"
 
     - name: Add emu gateway  # sudo ip route replace default via 10.0.0.1 dev eth0.x
       # remove again: sudo ip route del default via 10.0.0.1 dev eth0.x
